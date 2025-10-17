@@ -407,7 +407,3 @@ rename it.
 ## Licenses
 
 Azathoth is released under the MIT License. See the file `LICENSE` for details.
-
-Azathoth additionally requires the [PyYAML framework](https://pyyaml.org/) as a
-dependency. PyYAML is released under the MIT License.  See the file
-`LICENSE-pyyaml` for details.
