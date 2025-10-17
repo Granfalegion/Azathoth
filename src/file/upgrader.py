@@ -11,7 +11,7 @@ def _indent(level):
   return ''.join([INDENT for _ in range(level)])
 
 
-def _getValue(upgrade: Upgrade, num: int):
+def getValue(upgrade: Upgrade, num: int):
   '''Returns the value output by this upgrade when it has been selected a
   number of times.
   '''
@@ -77,7 +77,7 @@ def toMetaYamlManual(upgradeResults: dict):
         output += f"{gameTitle}:\n"
 
       # Then write the upgrade as a comment.
-      output += f"{_indent(1)}# MANUAL - {upgrade}: {_getValue(upgrade, count)}\n"
+      output += f"{_indent(1)}# MANUAL - {upgrade}: {getValue(upgrade, count)}\n"
 
     else:
 
@@ -94,7 +94,7 @@ def toMetaYamlManual(upgradeResults: dict):
 
         # Final steps give a value.
         else:
-          output += f"{_indent(i)}{step}: {_getValue(upgrade, count)}\n"
+          output += f"{_indent(i)}{step}: {getValue(upgrade, count)}\n"
 
     lastPath = currentPath
 
@@ -147,7 +147,7 @@ def _applyUpgradeToYaml(upgrade, count, yaml):
   if absent.
   '''
 
-  newValue = _getValue(upgrade, count)
+  newValue = getValue(upgrade, count)
   update = _toNestedDict(upgrade.yamlPath, newValue)
   _deepUpdate(yaml, update)
 
