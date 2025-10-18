@@ -109,12 +109,12 @@ class AzathothApp(tk.Tk):
     """Loads and initializes the images in the app."""
     
     # Background image.
-    bg = PhotoImage(file = resources.getPath("img\\thoth-w.png"))
+    bg = PhotoImage(file = resources.getPath("img", "thoth-w.png"))
 
     # Status Icons for file upload.
-    ok = PhotoImage(file = resources.getPath("img\\ok-sm.png"))
-    warn = PhotoImage(file = resources.getPath("img\\warn-sm.png"))
-    no = PhotoImage(file = resources.getPath("img\\no-sm.png"))
+    ok = PhotoImage(file = resources.getPath("img", "ok-sm.png"))
+    warn = PhotoImage(file = resources.getPath("img", "warn-sm.png"))
+    no = PhotoImage(file = resources.getPath("img", "no-sm.png"))
 
     self.images = {
       keys.bg: bg,
@@ -390,7 +390,7 @@ def start(version):
   root = tk.Tk()
   root.geometry("600x400")
   root.title(f"Azathoth v{version}")
-  root.iconbitmap(bitmap=resources.getPath("img\\Thoth-t.ico"))  # Set icon.
+  root.iconbitmap(bitmap=resources.getPath("img", "Thoth-t.ico"))  # Set icon.
   root.resizable(False, False)  # Disable window resizing
   
   app = AzathothApp(root)
