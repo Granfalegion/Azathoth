@@ -3,6 +3,7 @@ from gui import resources
 from gui.upgradeChooser import UpgradeChooser
 from data.upgrades import Wheel
 from pathlib import Path
+import os
 from spin import spinner
 import tkinter as tk
 from tkinter import filedialog, messagebox, PhotoImage
@@ -269,8 +270,9 @@ class AzathothApp(tk.Tk):
 
         # Write a new yaml with the upgrades included.
         filename = Path(gameFilePath).name
+        upgradedFilename = UPGRADE_PREFIX + filename
 
-        upgradedYamlFilePath = f"{saveDirectory}\\{UPGRADE_PREFIX}{filename}"
+        upgradedYamlFilePath = os.path.join(saveDirectory, upgradedFilename)
         writer.writeYamlToFile(upgradedYaml, upgradedYamlFilePath)
 
       # TODO: Consider adding this to a sub-directory instead of a peer.
@@ -279,7 +281,7 @@ class AzathothApp(tk.Tk):
       #         a sub-directory would let people write directly to `/Players`
       #         and not cause Archipelago generation errors.
       metaYaml = upgrader.toMetaYamlManual(upgradeResults)
-      metaYamlFilePath = f"{saveDirectory}\\azathothSummary.yaml"
+      metaYamlFilePath = os.path.join(saveDirectory, "azathothSummary.yaml")
       writer.writeToFile(metaYaml, metaYamlFilePath)
 
 
