@@ -1,6 +1,6 @@
 from gui import ui
 
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 
 def run():
    ui.start(VERSION)
