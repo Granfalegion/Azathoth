@@ -35,6 +35,9 @@ class keys():
   warn = "warnImage"
   no = "badImage"
 
+  azathothBlock = "azathoth"
+  azathothVersion = "version"
+
 
 def requireWheel(fn):
   """Decorator function to require the presence of a loaded wheel."""
@@ -91,8 +94,9 @@ class AppData():
 
 class AzathothApp(tk.Tk):
   """App class managing Azathoth UI and stateful data."""
-  def __init__(self, parent, *args, **kwargs):
+  def __init__(self, parent, version, *args, **kwargs):
     self.parent = parent
+    self.version = version
     self.frame = tk.Frame(self.parent)
     self.appData = AppData()
     self.images = {}
@@ -266,7 +270,8 @@ class AzathothApp(tk.Tk):
         title="Select folder to save upgraded files")
     if saveDirectory:
       for gameYaml, gameFilePath in self.appData.gameYamls:
-        upgradedYaml = upgrader.toUpgradedYaml(upgradeResults, gameYaml)
+        upgradedYaml = self.withAzathothHeader(
+          upgrader.toUpgradedYaml(upgradeResults, gameYaml))
 
         # Write a new yaml with the upgrades included.
         filename = Path(gameFilePath).name
@@ -275,14 +280,23 @@ class AzathothApp(tk.Tk):
         upgradedYamlFilePath = os.path.join(saveDirectory, upgradedFilename)
         writer.writeYamlToFile(upgradedYaml, upgradedYamlFilePath)
 
-      # TODO: Consider adding this to a sub-directory instead of a peer.
-      #         Archipelago tries to read every single .txt file in `/Players`
-      #         and interpret it, even if it's Oliver Twist. Pushing this under
-      #         a sub-directory would let people write directly to `/Players`
-      #         and not cause Archipelago generation errors.
-      metaYaml = upgrader.toMetaYamlManual(upgradeResults)
-      metaYamlFilePath = os.path.join(saveDirectory, "azathothSummary.yaml")
-      writer.writeToFile(metaYaml, metaYamlFilePath)
+      summaryYaml = upgrader.toSummaryYamlStr(
+        upgradeResults, version=self.version)
+      summaryYamlFilePath = os.path.join(saveDirectory, "azathothSummary.yaml")
+      writer.writeToFile(summaryYaml, summaryYamlFilePath)
+
+
+  def withAzathothHeader(self, yaml):
+    '''Returns a copy of the given YAML with an Azathoth header prepended.'''
+
+    # Only this complicated so we can force to appear early/first in the dict.
+    headedDict = {}
+    if self.version:
+      headedDict[keys.azathothBlock] = {
+        keys.azathothVersion: self.version,
+      }
+    headedDict.update(yaml)
+    return headedDict
 
 
   @warnOnUpgradeOverride
@@ -393,5 +407,5 @@ def start(version):
   root.iconbitmap(bitmap=resources.getPath("img", "Thoth-t.ico"))  # Set icon.
   root.resizable(False, False)  # Disable window resizing
   
-  app = AzathothApp(root)
+  app = AzathothApp(root, version)
   app.run()
