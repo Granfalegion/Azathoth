@@ -15,7 +15,7 @@ def _getDisplayName(yaml):
 
 
 def _yamlToProgression(yaml):
-  '''Constructs a Progression from the given YAML representation of one.'''
+  '''Produces a Progression from the given YAML representation of one.'''
 
   if isinstance(yaml, str):
     if yaml in RECOGNIZED_PROGRESSION_MACROS:

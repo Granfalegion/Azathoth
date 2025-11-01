@@ -11,11 +11,16 @@ def _sanitize(fileContents):
   return re.sub("^\xEF\xBB\xBF", "", fileContents)
 
 
+def _readToYamlFromInput(input):
+  '''Reads in a written YAML file contents are returns it as a YAML object.'''
+  sanitizedInput = _sanitize(input)
+  return pyyaml.safe_load(sanitizedInput)
+
+
 def readToYaml(inputYamlFileName):
   '''Reads in a YAML file at the given file address and returns it as a YAML
   object.
   '''
   
   with (open(inputYamlFileName)) as input:
-    fileContents = _sanitize(input.read())
-    return pyyaml.safe_load(fileContents)
+    return _readToYamlFromInput(input.read())

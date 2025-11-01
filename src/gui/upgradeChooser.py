@@ -96,7 +96,7 @@ class UpgradeChooser(tk.Frame):
     super().__init__(parent, *args, **kwargs)
     self.parent = parent
 
-    # Dict mapping upgrade uniqueId to (upgrade, label, spinbox, value widget)
+    # Dict mapping upgrade to corresponding UpgradeCounter widget collection.
     self.upgradeCountersByUpgrade = {}
     self.gameLabels = []
 
@@ -154,7 +154,7 @@ class UpgradeChooser(tk.Frame):
           currentGame = game
 
         # Create representative widgets for each upgrade.
-        upgradeLabel = tk.Label(upgradeLayout, text=upgrade.uniqueId)
+        upgradeLabel = tk.Label(upgradeLayout, text=upgrade.name)
         upgradeLabel.grid(row=currentRow, column=0)
 
         upperLimit = spinner.getLimitForUpgrade(upgrade, {})
