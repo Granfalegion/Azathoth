@@ -30,5 +30,5 @@ class ProgressionMacro:
 '''Mapping of shorthand macros to common Progressions that they represent.'''
 RECOGNIZED_PROGRESSION_MACROS = {
   "ONE_PER": Progression(increment=1),
-  "UNIQUE": Progression(values=[1]),
+  "UNIQUE": Progression(values=tuple([1])),
 }

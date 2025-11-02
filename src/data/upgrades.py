@@ -12,6 +12,7 @@ class Progression:
     Limit:      Explicit limit on how many times the upgrade can be selected.
     Values:     List of values corresponding to how many of the Upgrade you have.
                 e.g. roll 1, receive values[0]; roll 2, receive values[1], &c.
+                Converted to tuple internally for immutability.
     Increment:  Describes indefinite pattern of values from the last. If values
                 has length 5, values[4]=7, and increment is 1, then rolling
                 this upgrade 8 times results in a value of 10.
@@ -20,18 +21,27 @@ class Progression:
   '''
   def __init__(self, limit=None, values=None, increment=None):
     self.limit = limit
-    self.values = values
+    self.values = values if values == None else tuple(values)
     self.increment = increment
 
   def __repr__(self):
     return f"limit: {self.limit}\nvalues: {self.values}\nincrement: {self.increment}"
 
+  def __eq__(self, other):
+    return (isinstance(other, Progression)
+      and self.limit == other.limit
+      and self.values == other.values
+      and self.increment == other.increment)
+
+  def __hash__(self):
+    return hash((self.limit, self.values, self.increment))
 
 
 class Upgrade:
   """Describes an upgrade that can be selected.
 
   Attributes:
+    Name:         Display name for upgrade.
     Type:         Type of upgrade. 
     YamlPath:     Path to where in the YAML the upgrade is located, if any.
     Progression:  Upgraded value to be added.
@@ -41,15 +51,27 @@ class Upgrade:
     UNSPECIFIED = 0
     OVERRIDE = 1    # Overrides a setting that may exist in the base YAML.
     MANUAL = 2      # Manually-enforced change with no YAML change.
-  
-  def __init__(self, uniqueId="", type=Type.UNSPECIFIED, yamlPath=None, progression=None):
-    self.uniqueId = uniqueId
+
+  def __init__(
+      self, name="", type=Type.UNSPECIFIED, yamlPath=None, progression=None):
+
+    self.name = name
     self.type = type
-    self.yamlPath = yamlPath if yamlPath is not None else []
+    self.yamlPath = tuple(yamlPath or [])
     self.progression = progression
+
+  def __eq__(self, other):
+    return (isinstance(other, Upgrade)
+      and self.name == other.name
+      and self.type == other.type
+      and self.yamlPath == other.yamlPath
+      and self.progression == other.progression)
   
+  def __hash__(self):
+    return hash((self.name, self.type, self.yamlPath, self.progression))
+
   def __repr__(self) -> str:
-    return self.uniqueId
+    return self.name
 
 
 class WeightedChoice:
