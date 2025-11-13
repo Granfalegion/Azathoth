@@ -17,7 +17,7 @@ def getValue(upgrade: Upgrade, num: int):
   '''
 
   if num <= 0:
-    raise ValueError(f"Upgrade {upgrade} was rolled <{num}> times, but"
+    raise ValueError(f"Upgrade {upgrade} was selected <{num}> times, but"
                      f" requested anyway!")
 
   progression = upgrade.progression
@@ -35,10 +35,15 @@ def getValue(upgrade: Upgrade, num: int):
       return progression.values[num-1]
         
     # Otherwise, go to the end of the values and calculate increment therefrom.
-    else:
+    elif num > len(values) and progression.increment:
       lastValue = progression.values[-1]
       numIncrements = num-len(values)
       return lastValue + (numIncrements * progression.increment)
+    
+    # If there's no increment and we're outside the values, raise error.
+    else:
+      raise ValueError(f"Upgrade {upgrade} was selected {num} times, but does"
+                       f" not have enough values to support that number.")
         
   # ... but in the absence of a values list, just count up from 0.
   else:

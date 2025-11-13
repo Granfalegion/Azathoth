@@ -19,12 +19,7 @@ def _yamlToProgression(yaml):
 
   if isinstance(yaml, str):
     if yaml in RECOGNIZED_PROGRESSION_MACROS:
-      # TODO: Rather than hard-returning this, consider changing `yaml` (via
-      #       wrapper/decorator) to be what this dict returns before proceeding
-      #       with value massaging. That would allow macro definitions to take
-      #       advantage of things like setting `values` to a singleton and
-      #       reduce potential surprises in function.
-      return RECOGNIZED_PROGRESSION_MACROS[yaml]
+      return _yamlToProgression(RECOGNIZED_PROGRESSION_MACROS[yaml])
     else:
       raise ValueError(f"Progression macro '{yaml}' not recognized.")
 
