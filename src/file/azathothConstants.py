@@ -27,8 +27,10 @@ class ProgressionMacro:
   ONE_PER = "ONE_PER"
 
 
-'''Mapping of shorthand macros to common Progressions that they represent.'''
+# Mapping of shorthand macros to Progression YAMLs that they represent.
 RECOGNIZED_PROGRESSION_MACROS = {
-  "ONE_PER": Progression(increment=1),
-  "UNIQUE": Progression(values=tuple([1])),
+  # Macros can map either to YAMLs that can be parsed as Progressions or even
+  # to other macros as aliases.
+  "ONE_PER": {Keys.INCREMENT: 1},
+  "UNIQUE": {Keys.VALUES: 1},
 }

@@ -27,12 +27,15 @@ def getLimitForUpgrade(upgrade: Upgrade, currentResults):
 
 
 
-def getLimitForWheel(wheel: Wheel, currentResults={}):
+def getLimitForWheel(wheel: Wheel, currentResults=None):
   '''Returns the number of times you can still spin a wheel, or -1 if
   unlimited.
   '''
 
   limitedLeft = 0
+
+  if currentResults == None:
+    currentResults = {}
 
   # Iterate through choices on the wheel.
   # If any choices can be rolled indefinitely, so can this.
@@ -85,7 +88,6 @@ def _spinWheel(wheel: Wheel, currentResults) -> WeightedChoice:
   return choice
 
 
-
 def spinUpgrades(wheel: Wheel, numSpins: int):
   '''Returns Upgrades produced by spinning the given Wheel {spins} times, as a
   dict mapping Upgrades to the number of times rolled.
@@ -95,7 +97,7 @@ def spinUpgrades(wheel: Wheel, numSpins: int):
 
   # First check that the given wheel can support X spins.
   wheelLimit = getLimitForWheel(wheel)
-  if getLimitForWheel(wheel) < numSpins and wheelLimit != -1:
+  if wheelLimit < numSpins and wheelLimit != -1:
     raise ValueError(f"Wheel {wheel.displayName} has a limit of {wheelLimit}"
                      f" and cannot spin {numSpins} times.")
   
