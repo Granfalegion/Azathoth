@@ -62,7 +62,7 @@ def _validateProgression(yaml):
 
   if isinstance(yaml, str):
     if yaml in RECOGNIZED_PROGRESSION_MACROS:
-      return  # Presume that pre-defined Macros are valid.
+      return _validateProgression(RECOGNIZED_PROGRESSION_MACROS[yaml])
     else:
       raise ValueError(f"Progression {yaml} not a recognized macro.")
 
