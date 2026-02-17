@@ -34,6 +34,9 @@ class keys():
   saveButton = "saveButton"
 
   bg = "backgroundImage"
+  b1 = "backgroundBlink1Image"
+  b2 = "backgroundBlink2Image"
+  b3 = "backgroundBlink3Image"
   ok = "okImage"
   warn = "warnImage"
   no = "badImage"
@@ -120,6 +123,11 @@ class AzathothApp(tk.Tk):
     # Background image.
     bg = PhotoImage(file = resources.getPath("img", "thoth-w.png"))
 
+    # Blinks.
+    b1 = PhotoImage(file = resources.getPath("img", "thothb1-w.png"))
+    b2 = PhotoImage(file = resources.getPath("img", "thothb2-w.png"))
+    b3 = PhotoImage(file = resources.getPath("img", "thothb3-w.png"))
+
     # Status Icons for file upload.
     ok = PhotoImage(file = resources.getPath("img", "ok-sm.png"))
     warn = PhotoImage(file = resources.getPath("img", "warn-sm.png"))
@@ -127,6 +135,9 @@ class AzathothApp(tk.Tk):
 
     self.images = {
       keys.bg: bg,
+      keys.b1: b1,
+      keys.b2: b2,
+      keys.b3: b3,
       keys.ok: ok,
       keys.warn: warn,
       keys.no: no,
@@ -135,8 +146,8 @@ class AzathothApp(tk.Tk):
   
   def loadMainButtons(self):
     """Initializes the buttons in the app."""
-    bgLabel = tk.Label(self.parent, image=self.images[keys.bg])
-    bgLabel.place(x=0,y=0,relwidth=1, relheight=1, anchor='nw', )
+    self.bgLabel = tk.Label(self.parent, image=self.images[keys.bg])
+    self.bgLabel.place(x=0,y=0,relwidth=1, relheight=1, anchor='nw', )
 
     loadGamesButton = tk.Button(self.parent, text = "Load Game YAMLs",
                                 compound = "left",
@@ -312,15 +323,18 @@ class AzathothApp(tk.Tk):
       if not reallyProceed:
         return
     
-
     # Ask where to save, then save upgraded YAMLs and the meta summary.
     saveDirectory = filedialog.askdirectory(
         title="Select folder to save upgraded files",
         initialdir=Path(self.preferences.get(PrefFields.LAST_SAVE_FOLDER)) or None)
-    if saveDirectory:
+    if not saveDirectory:
+      return
+    
+    self.preferences.set(PrefFields.LAST_SAVE_FOLDER, saveDirectory)
 
-      # TODO: Add preference to silence it, but warn about save overwrites.
-
+    # Prepare all the upgraded YAMLs.
+    filePathToUpgradedYaml = dict()
+    try:
       for gameYaml, gameFilePath in self.appData.gameYamls:
         upgradedYaml = self.withAzathothHeader(
           upgrader.toUpgradedYaml(upgradeResults, gameYaml))
@@ -330,18 +344,69 @@ class AzathothApp(tk.Tk):
         upgradedFilename = UPGRADE_PREFIX + filename
 
         upgradedYamlFilePath = os.path.join(saveDirectory, upgradedFilename)
-        writer.writeYamlToFile(upgradedYaml, upgradedYamlFilePath)
+        filePathToUpgradedYaml[upgradedYamlFilePath] = upgradedYaml
+    except Exception as e:
+      # Capture and notify on errors encountered while upgrading.
+      exMessage = getattr(e, 'message', repr(e))
+      return messagebox.showerror(
+        title="Upgrade Failed",
+        message=f"Encountered error while applying upgrades.\n\n{exMessage}"
+      )
+    
+    # If preferred, check for and warn on file overwrite.
+    if self.preferences.get(PrefFields.WARN_ON_SAVE_OVERWRITE):
+      if any([Path(key).exists() for key in filePathToUpgradedYaml.keys()]):
+        ok = messagebox.askyesno(
+          title="Really overwrite existing files?",
+          icon='warning',
+          message="Upgraded YAMLs already exist in your target folder and will"
+                  " be overwritten by this action.\n\n"
+                  "Really proceed?",
+        )
+        if not ok:
+          return
 
-      summaryYaml = upgrader.toSummaryYamlStr(
-        upgradeResults, version=self.version)
-      summaryYamlFilePath = os.path.join(saveDirectory, "azathothSummary.yaml")
-      writer.writeToFile(summaryYaml, summaryYamlFilePath)
-      self.preferences.set(PrefFields.LAST_SAVE_FOLDER, saveDirectory)
+    # Save the upgraded YAMLs.
+    successfulSaves = 0
+    try:
+      for filePath, yaml in filePathToUpgradedYaml.items():
+        writer.writeYamlToFile(yaml, filePath)
+        successfulSaves += 1
+    except Exception as e:
+      # Capture and notify on errors encountered while saving.
+      exMessage = getattr(e, 'message', repr(e))
+      return messagebox.showerror(
+        title="Saves Failed",
+        message=f"Encountered error while saving YAMLs.\n\n{exMessage}"
+      )
 
-      # TODO: Add a pop-up modal here that confirms that [X] saves succeeded or
-      #   explains what went wrong.
-      # TODO: Consider making this more idempotent by creating all of the saves
-      #   and their target locations at once and then saving the group after.
+    # Save Azathoth summary
+    summaryYaml = upgrader.toSummaryYamlStr(
+      upgradeResults, version=self.version)
+    summaryYamlFilePath = os.path.join(saveDirectory, "azathothSummary.yaml")
+    writer.writeToFile(summaryYaml, summaryYamlFilePath)
+
+    # Blink
+    if not self.preferences.get(PrefFields.DISABLE_BLINK):
+      self.blink()
+
+
+  def blink(self):
+    '''Blink.'''
+    def updateImage(label, image):
+      label.config(image=image)
+
+    imgs = [
+      self.images[keys.b1],
+      self.images[keys.b2],
+      self.images[keys.b3],
+      self.images[keys.b2],
+      self.images[keys.b1],
+      self.images[keys.bg],
+    ]
+    for i, img in enumerate(imgs):
+      waitMs = i * 80
+      self.bgLabel.after(waitMs, updateImage, self.bgLabel, img)
 
 
   def withAzathothHeader(self, yaml):

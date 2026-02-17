@@ -17,7 +17,8 @@ class Fields:
   LAST_SAVE_FOLDER = "last_save_folder"
   IGNORE_AZATHOTH_SUMMARY = "ignore_azathoth_summary"
   SILENCE_UPGRADE_CLEAR_WARNING = "silence_upgrade_clear_warning"
-  SILENCE_SAVE_OVERWRITE_WARNING = "silence_save_overwrite_warning"
+  WARN_ON_SAVE_OVERWRITE = "warn_on_save_overwrite"
+  DISABLE_BLINK = "disable_blink"
 
 # Default values used for preference fields.
 DEFAULTS = {
@@ -29,7 +30,8 @@ DEFAULTS = {
   Fields.LAST_SAVE_FOLDER: "",
   Fields.IGNORE_AZATHOTH_SUMMARY: False,
   Fields.SILENCE_UPGRADE_CLEAR_WARNING: False,
-  Fields.SILENCE_SAVE_OVERWRITE_WARNING: False,
+  Fields.WARN_ON_SAVE_OVERWRITE: False,
+  Fields.DISABLE_BLINK: False,
 }
 
 class Preferences():
