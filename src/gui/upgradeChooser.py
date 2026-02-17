@@ -69,7 +69,13 @@ class UpgradeCounter():
       # Make invisible
       self.upgradeValue.configure(text="")
     else:
-      self.upgradeValue.configure(text=upgrader.getValue(self.upgrade, numUpgrades))
+      upgradedValue = upgrader.getValue(self.upgrade, numUpgrades)
+      upgradedText = str(upgradedValue)
+
+      if upgradedText.isnumeric():
+        # Numeric upgrades use an arrow to differentiate between count and value.
+        upgradedText = f"=> {upgradedText}"
+      self.upgradeValue.configure(text=upgradedText)
 
     self.upDownCounter.refresh()
 

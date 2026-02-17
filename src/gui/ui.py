@@ -1,9 +1,11 @@
+from data.preferences import Preferences, Fields as PrefFields
+from data.upgrades import Wheel
 from file import azathothReader, upgrader, writer, yamlReader
 from gui import resources
+from gui.preferencesEditor import PreferencesEditor
 from gui.upgradeChooser import UpgradeChooser
-from data.upgrades import Wheel
-from pathlib import Path
 import os
+from pathlib import Path
 from spin import spinner
 import tkinter as tk
 from tkinter import filedialog, messagebox, PhotoImage
@@ -24,6 +26,7 @@ class keys():
   """Namespace for keys in collected dicts of UI widgets."""
   gamesButton = "gameButton"
   wheelButton = "wheelButton"
+  preferencesButton = "preferencesButton"
   exitButton = "exitButton"
 
   spinButton = "spinButton"
@@ -69,7 +72,8 @@ def warnOnUpgradeOverride(fn):
   """Decorator function to warn about clearing upgrade counts."""
   def inner(*args, **kwargs):
     self = args[0]
-    if self.chooser and self.chooser.hasAnyUpgrades():
+    silenced = self.preferences.get(PrefFields.SILENCE_UPGRADE_CLEAR_WARNING)
+    if self.chooser and self.chooser.hasAnyUpgrades() and not silenced:
       saidYes = messagebox.askyesno("Really overwrite upgrades?",
         "This action will replace all upgrades you have already set.")
       if not saidYes:
@@ -102,6 +106,7 @@ class AzathothApp(tk.Tk):
     self.images = {}
     self.buttons = {}
     self.chooser = None
+    self.parent.protocol("WM_DELETE_WINDOW", self.onClose)
 
   
   # TODO: It's not clear to me _why_ this must be in its own function exactly,
@@ -135,26 +140,60 @@ class AzathothApp(tk.Tk):
 
     loadGamesButton = tk.Button(self.parent, text = "Load Game YAMLs",
                                 compound = "left",
-                                command = lambda: self.loadGamesFiles(loadGamesButton))
+                                command = self.loadGamesFiles)
 
     loadWheelButton = tk.Button(self.parent, text = "Load Upgrade Wheel",
                                 compound = "left",
-                                command = lambda: self.loadWheelFile(loadWheelButton))
+                                command = self.loadWheelFile)
     
-    exitButton = tk.Button( self.parent, text = "Exit",
-                          command = self.parent.destroy)
+    preferencesButton = tk.Button(self.parent, text = "Preferences",
+                                compound = "left",
+                                command = self.loadPreferencesEditor)
+    exitButton = tk.Button(self.parent, text = "Exit", command = self.onClose)
     
     self.buttons.update({
       keys.gamesButton: loadGamesButton,
       keys.wheelButton: loadWheelButton,
+      keys.preferencesButton: preferencesButton,
       keys.exitButton: exitButton,
     })
 
     loadGamesButton.place(x=5, y=5)
     loadWheelButton.place(x=5, y=35)
+    preferencesButton.place(x=5, y=340)
     exitButton.place(x=5, y=370)
 
-  
+
+  def loadPreferences(self):
+    self.preferences = Preferences(version=self.version)
+
+    try:
+      self.preferences.load()
+    except FileNotFoundError:
+      # This is fine. Preferences files must be created once, after all.
+      pass
+    except ValueError as e:
+      # Bad value in preferences file.
+      self.errorModal("Failed to load preferences",
+                      f"Could not parse contents as YAML: {e}")
+
+    # Take initialization actions dictated by preferences.    
+    if (startGameYamlFilenames := self.preferences.get(PrefFields.ON_START_GAME_YAMLS)):
+      self.loadGamesFiles(filenames=startGameYamlFilenames)
+    if (startWheelFilename := self.preferences.get(PrefFields.ON_START_WHEEL)):
+      self.loadWheelFile(filename=startWheelFilename)
+
+
+  def onClose(self):
+    try:
+      self.preferences.close()
+    except OSError:
+      self.errorModal("Unsupported OS",
+                      "Cannot save preferences for unrecognized OS."
+                      " Please report to maintainers.")
+    self.parent.destroy()
+
+
   def refresh(self):
     """Updates UI to reflect the app's current state."""
     hasGames = self.appData.gameYamls
@@ -187,22 +226,27 @@ class AzathothApp(tk.Tk):
     """Starts UI."""
     self.loadImages()
     self.loadMainButtons()
+    self.loadPreferences()
     
     self.parent.mainloop()
 
   
   @warnOnUpgradeOverride
-  def loadWheelFile(self, button):
+  def loadWheelFile(self, filename=None):
     """Opens a new dialog to fetch an indicated Azathoth wheel, parses and
     validates it, then opens an UpgradeChooser reflecting that data state.
     """
-    filename = filedialog.askopenfilename(
-                title="Select Azathoth Wheel",
-                filetypes=[('Azathoth Wheel', '*.yaml')])
+    if not filename:
+      filename = filedialog.askopenfilename(
+                  title="Select Azathoth Wheel",
+                  filetypes=[('Azathoth Wheel', '*.yaml')],
+                  initialdir=self.preferences.get(PrefFields.LAST_WHEEL_FOLDER) or None)
     if filename:
       try:
         self.appData.wheel = azathothReader.azathothToWheel(filename)
         self.openChooser()
+        wheelFolder = Path(filename).parent.as_posix()
+        self.preferences.set(PrefFields.LAST_WHEEL_FOLDER, wheelFolder)
       except ValueError as e:
         # TODO: Consider if there's a cleaner way to signal failure and clear.
         self.appData.wheel = EMPTY_WHEEL
@@ -213,14 +257,15 @@ class AzathothApp(tk.Tk):
         self.refresh()
 
   
-  def loadGamesFiles(self, button):
+  def loadGamesFiles(self, filenames=[]):
     """Opens a new dialog to fetch an indicated set of game YAMLs, parses them,
     then sets them to the current data state.
     """
-    filenames = filedialog.askopenfilenames(
-                  title="Select Game YAMLs",
-                  filetypes=[('Game YAMLs', '*.yaml')])
-    
+    if not filenames:
+      filenames = filedialog.askopenfilenames(
+                    title="Select Game YAMLs",
+                    filetypes=[('Game YAMLs', '*.yaml')],
+                    initialdir=self.preferences.get(PrefFields.LAST_GAME_YAMLS_FOLDER) or None)
     if filenames:
       gameYamls = []
       try:
@@ -228,6 +273,9 @@ class AzathothApp(tk.Tk):
           gameYaml = yamlReader.readToYaml(filename)
           gameYamls.append((gameYaml, filename))
         self.appData.gameYamls = gameYamls
+        if filenames:
+          gameYamlsFolder = Path(filenames[-1]).parent.as_posix()
+          self.preferences.set(PrefFields.LAST_GAME_YAMLS_FOLDER, gameYamlsFolder)
       except Exception as e:
         self.appData.gameYamls = []
         self.errorModal("Failed to load game YAMLs", e)
@@ -257,7 +305,7 @@ class AzathothApp(tk.Tk):
       reallyProceed = messagebox.askyesnocancel("Game YAMLs Missing",
                       f"Attempting to save upgrades for games not included in"
                       " your loaded game YAMLs. These upgrades will have no"
-                      " effect.\n\n" \
+                      " effect.\n\n"
                       "Really proceed?",
                       detail=f"Missing YAMLs: {', '.join(missingGames)}",
                       icon='error')
@@ -267,8 +315,12 @@ class AzathothApp(tk.Tk):
 
     # Ask where to save, then save upgraded YAMLs and the meta summary.
     saveDirectory = filedialog.askdirectory(
-        title="Select folder to save upgraded files")
+        title="Select folder to save upgraded files",
+        initialdir=Path(self.preferences.get(PrefFields.LAST_SAVE_FOLDER)) or None)
     if saveDirectory:
+
+      # TODO: Add preference to silence it, but warn about save overwrites.
+
       for gameYaml, gameFilePath in self.appData.gameYamls:
         upgradedYaml = self.withAzathothHeader(
           upgrader.toUpgradedYaml(upgradeResults, gameYaml))
@@ -284,6 +336,12 @@ class AzathothApp(tk.Tk):
         upgradeResults, version=self.version)
       summaryYamlFilePath = os.path.join(saveDirectory, "azathothSummary.yaml")
       writer.writeToFile(summaryYaml, summaryYamlFilePath)
+      self.preferences.set(PrefFields.LAST_SAVE_FOLDER, saveDirectory)
+
+      # TODO: Add a pop-up modal here that confirms that [X] saves succeeded or
+      #   explains what went wrong.
+      # TODO: Consider making this more idempotent by creating all of the saves
+      #   and their target locations at once and then saving the group after.
 
 
   def withAzathothHeader(self, yaml):
@@ -320,7 +378,6 @@ class AzathothApp(tk.Tk):
 
     upgradeResults = spinner.spinUpgrades(self.appData.wheel, numSpins) # type: ignore
     self.chooser.applyUpgrades(upgradeResults) # type: ignore
-
 
 
   
@@ -397,6 +454,12 @@ class AzathothApp(tk.Tk):
       icon='error',
       parent=self.parent
     )
+  
+  def loadPreferencesEditor(self):
+    '''Loads Preferences Editor as a toplevel sub-window with forced focus.'''
+    editor = PreferencesEditor(self.parent, self.preferences)
+    editor.grab_set()
+    editor.focus()
 
 
 def start(version):
