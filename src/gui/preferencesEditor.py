@@ -42,6 +42,19 @@ EDITABLES_BY_FIELD = {
     'If enabled, silences and skips warnings when taking an action that would'\
     ' clear or change your selected upgrades, such as clearing or spinning'\
     ' new upgrades.'),
+
+  PrefFields.WARN_ON_SAVE_OVERWRITE: EditablePreference(
+    "Warn on Save Overwrite",
+    EditablePreference.Type.BOOLEAN,
+    "If enabled, requires confirmation before overwriting existing files when"\
+    " saving upgraded YAMLs."
+  ),
+
+  PrefFields.DISABLE_BLINK: EditablePreference(
+    "Disable Blink",
+    EditablePreference.Type.BOOLEAN,
+    "If enabled, Azathoth no longer blinks to confirm successful file saves."
+  ),
 }
 
 class PreferencesEditor(tk.Toplevel):

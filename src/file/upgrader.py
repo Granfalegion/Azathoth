@@ -138,6 +138,9 @@ def _deepUpdate(target, update):
   """Updates the target dictionary to include the given update. Differs from
   the extant .update() method to include nested field support.
   """
+  if not isinstance(target, dict):
+    raise ValueError(f"Target {target} is not a dictionary and cannot update.")
+
   for key, value in update.items():
     if isinstance(value, collections.abc.Mapping):
       target[key] = _deepUpdate(target.get(key, {}), value)
