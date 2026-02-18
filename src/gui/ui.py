@@ -244,8 +244,9 @@ class AzathothApp(tk.Tk):
   
   @warnOnUpgradeOverride
   def loadWheelFile(self, filename=None):
-    """Opens a new dialog to fetch an indicated Azathoth wheel, parses and
-    validates it, then opens an UpgradeChooser reflecting that data state.
+    """Loads an Azathoth wheel, parses and validates it, then opens an
+    UpgradeChooser reflecting the wheel's contents. If no filename is given,
+    the user is prompted to select one via dialog.
     """
     if not filename:
       filename = filedialog.askopenfilename(
@@ -258,7 +259,8 @@ class AzathothApp(tk.Tk):
         self.openChooser()
         wheelFolder = Path(filename).parent.as_posix()
         self.preferences.set(PrefFields.LAST_WHEEL_FOLDER, wheelFolder)
-      except ValueError as e:
+      except Exception as e:
+        # TODO: If wheel loaded via preference, signal to preferences editor.
         # TODO: Consider if there's a cleaner way to signal failure and clear.
         self.appData.wheel = EMPTY_WHEEL
         if self.chooser:
