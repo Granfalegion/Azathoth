@@ -27,16 +27,22 @@ def getValue(upgrade: Upgrade, num: int):
   if progression.limit and num > progression.limit:
     raise ValueError(f"Upgrade {upgrade} exceeded its given limit of "
                      f" {progression.limit}!")
-    
+
+  # TODO: Revisit the logic order here. Checking num==limit twice feels bad.
+
   # First check if we have a values list to base this on...
   if values:= progression.values:
     # If num is in the values list, report it directly.
     if num <= len(values):
-      return progression.values[num-1]
-        
+      return values[num-1]
+
+    # If there's a limit and we've reached it, just report stopAt.
+    elif num == progression.limit:
+      return progression.stopAt
+
     # Otherwise, go to the end of the values and calculate increment therefrom.
     elif num > len(values) and progression.increment:
-      lastValue = progression.values[-1]
+      lastValue = values[-1]
       numIncrements = num-len(values)
       return lastValue + (numIncrements * progression.increment)
     
@@ -46,10 +52,12 @@ def getValue(upgrade: Upgrade, num: int):
                        f" not have enough values to support that number.")
         
   # ... but in the absence of a values list, just count up from 0.
-  else:
-    # NOTE: This makes the assumption that the progression is for numbers.
-    #       This _should_ be assured by validation, but I wanted to note it.
+  elif progression.increment:
+    if num == progression.limit:
+      return progression.stopAt
     return num * progression.increment
+  else:
+    raise ValueError(f"Progression {progression} had no values or increment.")
 
 
 def toSummaryYamlStr(upgradeResults: dict, version=None):

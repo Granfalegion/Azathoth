@@ -3,38 +3,100 @@
 
 from enum import Enum
 
+UNLIMITED = -1
 
 class Progression:
   '''Describes the progressive values produced by an upgrade, depending on how
   many times the upgrade has been selected.
 
   Attributes:
-    Limit:      Explicit limit on how many times the upgrade can be selected.
-    Values:     List of values corresponding to how many of the Upgrade you have.
+    values:     List of values corresponding to how many of the Upgrade you have.
                 e.g. roll 1, receive values[0]; roll 2, receive values[1], &c.
                 Converted to tuple internally for immutability.
-    Increment:  Describes indefinite pattern of values from the last. If values
-                has length 5, values[4]=7, and increment is 1, then rolling
-                this upgrade 8 times results in a value of 10.
 
-  Must include at least one of values or increment.  May include both.
+    increment:  If given, enables upgrade to be selected further beyond the 
+                N values listed in the values attribute. After reaching the Nth
+                value, subsequent selections add increment to the total value.
+                
+                For example: If values=[0,1,2,4,7], and increment=1, then
+                selecting this upgrade 8 times results in a final value of 10.
+
+    stopAt:     If given, increment-driven selections are only available until
+                this value is reached. If an increment would take the upgrade
+                past this value, it instead stops at this value.
+
+                For example: If values=[3], increment=2, and stopAt=10, then
+                this upgrade can be selected 5 times, yielding [3,5,7,9,10].
+
+    limit:      If given, explicit limit on how many times this upgrade can be
+                selected.
+
+  Must include at least one of values or increment.
   '''
-  def __init__(self, limit=None, values=None, increment=None):
-    self.limit = limit
+  def __init__(self, values=None, increment=None, stopAt=None, limit=None):
     self.values = values if values == None else tuple(values)
     self.increment = increment
+    self.stopAt = stopAt
+    self.limit = limit
+
+    self._finalize()
 
   def __repr__(self):
-    return f"limit: {self.limit}\nvalues: {self.values}\nincrement: {self.increment}"
+    return f"values: {self.values}\nincrement: {self.increment}\nstopAt: {self.stopAt}"
 
   def __eq__(self, other):
     return (isinstance(other, Progression)
-      and self.limit == other.limit
       and self.values == other.values
-      and self.increment == other.increment)
+      and self.increment == other.increment
+      and self.stopAt == other.stopAt)
 
   def __hash__(self):
-    return hash((self.limit, self.values, self.increment))
+    return hash((self.values, self.increment, self.stopAt))
+
+
+  def _getStopAt(self):
+    '''Returns the last reachable value of this upgrade. If the upgrade can be
+    selected indefinitely, returns None.
+    '''
+    if self.increment == None:
+      return len(self.values or [])
+
+    if self.limit in (UNLIMITED, None):
+      return None
+    
+    lastValue = self.values[-1] if self.values else 0
+    remainingIncrements = self.limit - len(self.values or [])
+    return lastValue + (remainingIncrements * self.increment)
+
+
+  def _getSpinLimit(self) -> int:
+    '''Returns the maximum number of times this upgrade can be selected.
+    Returns -1 if it can be selected indefinitely.
+    '''
+    numValues = len(self.values or [])
+    if self.increment:
+      if self.stopAt == None:
+        return UNLIMITED
+      
+      finalValue = self.values[-1] if self.values else 0
+      remainingValue = self.stopAt - finalValue
+      remainingIncrements = remainingValue / self.increment
+      if remainingIncrements < 0:
+        raise ValueError(f"Progression {self} has an unreachable stopAt.")
+      
+      # TODO: Check that this works with negative increments correctly.
+      numValues += -(remainingValue // -self.increment)  # Ceiling divide.
+    
+    return numValues
+  
+
+  def _finalize(self):
+    '''Derive unprovided end conditions once all parameters are initialized.'''
+    if self.limit == None and self.stopAt != None:
+      self.limit = self._getSpinLimit()
+    if self.stopAt == None and self.limit != None:
+      self.stopAt = self._getStopAt()
+
 
 
 class Upgrade:
