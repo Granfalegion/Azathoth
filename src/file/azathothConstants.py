@@ -1,5 +1,3 @@
-from data.upgrades import Progression
-
 class Keys:
   '''Constants for expected keys in the Azathoth scheme.'''
   NAME = "name"
@@ -10,10 +8,14 @@ class Keys:
   PATH = "path"
   PROGRESSION = "progression"
   TYPE = "type"
-  AT_MOST = "atMost"
-  LIMIT = "limit"
+  SPIN_LIMIT = "spinLimit"
   VALUES = "values"
   INCREMENT = "increment"
+  STOP_AT = "stopAt"
+
+  # Outdated Keys
+  AT_MOST = "atMost"  # Replaced by STOP_AT in v0.2.3
+  LIMIT = "limit"     # Replaced by SPIN_LIMIT in v0.2.3
 
 
 class UpgradeType:
@@ -28,9 +30,15 @@ class ProgressionMacro:
 
 
 # Mapping of shorthand macros to Progression YAMLs that they represent.
-RECOGNIZED_PROGRESSION_MACROS = {
+PROGRESSION_MACROS = {
   # Macros can map either to YAMLs that can be parsed as Progressions or even
   # to other macros as aliases.
   "ONE_PER": {Keys.INCREMENT: 1},
   "UNIQUE": {Keys.VALUES: 1},
+}
+
+# Mapping of outdated Progression fields to their replacements.
+PROGRESSION_FIELD_ALIASES = {
+  Keys.AT_MOST: Keys.STOP_AT,
+  Keys.LIMIT: Keys.SPIN_LIMIT,
 }

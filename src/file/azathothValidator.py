@@ -1,5 +1,5 @@
 from file.azathothConstants import Keys, UpgradeType
-from file.azathothConstants import RECOGNIZED_PROGRESSION_MACROS
+from file.azathothConstants import PROGRESSION_FIELD_ALIASES, PROGRESSION_MACROS
 
 # map of all valid wheel Keys to the type of values permitted for them
 VALID_WHEEL_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
@@ -25,7 +25,7 @@ VALID_UPGRADE_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
 
 # map of all valid Progression Keys to the type of values permitted for them
 VALID_PROGRESSION_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
-  Keys.AT_MOST: [int],
+  Keys.STOP_AT: [int],
   Keys.LIMIT: [int],
   Keys.VALUES: [int|str, list],  # Consider if there are other raw types here.
   Keys.INCREMENT: [int],
@@ -61,28 +61,25 @@ def _validateProgression(yaml):
   '''
 
   if isinstance(yaml, str):
-    if yaml in RECOGNIZED_PROGRESSION_MACROS:
-      return _validateProgression(RECOGNIZED_PROGRESSION_MACROS[yaml])
+    if yaml in PROGRESSION_MACROS:
+      return _validateProgression(PROGRESSION_MACROS[yaml])
     else:
       raise ValueError(f"Progression {yaml} not a recognized macro.")
 
+  if yaml.keys() & PROGRESSION_FIELD_ALIASES.keys():
+    return _validateProgression(
+      {PROGRESSION_FIELD_ALIASES.get(k, k): v for k, v in yaml.items()})
+
   _validateKeysAndValues(yaml, VALID_PROGRESSION_KEYS_TO_ALLOWED_TYPES)
 
-  if Keys.AT_MOST in yaml and Keys.LIMIT in yaml:
-    raise ValueError(f"Progression {yaml} listed both {Keys.AT_MOST} and"
-                     f" {Keys.LIMIT}, but only one is allowed.")
+  if Keys.STOP_AT in yaml and Keys.SPIN_LIMIT in yaml:
+    raise ValueError(f"Progression {yaml} listed both {Keys.STOP_AT} and"
+                     f" {Keys.SPIN_LIMIT}, but only one is allowed.")
 
-  if Keys.LIMIT in yaml and Keys.VALUES in yaml:
-    if len(yaml[Keys.VALUES]) < yaml[Keys.LIMIT]:
+  if Keys.SPIN_LIMIT in yaml and Keys.VALUES in yaml:
+    if len(yaml[Keys.VALUES]) < yaml[Keys.SPIN_LIMIT]:
       raise ValueError(f"Progression {yaml} listed more values than its"
-                       f" limit of {yaml[Keys.LIMIT]} allows.")
-
-  # TODO: Consider validating that, if present, `increment` and `atMost` allow
-  #         for more rolls beyond values[-1].
-  #       That said, I can see an argument for convenience's sake to allowing
-  #         increments that may not get a chance to fire because you might edit
-  #         the base value without wanting to care about restructuring the
-  #         rest of the upgrade as well.
+                       f" limit of {yaml[Keys.SPIN_LIMIT]} allows.")
 
   if Keys.VALUES not in yaml and Keys.INCREMENT not in yaml:
     raise ValueError(f"Progression {yaml} has neither `values` nor `increment`."

@@ -1,6 +1,6 @@
 from data.upgrades import Progression, Upgrade, Wheel, WeightedChoice
 from file import azathothValidator, yamlReader
-from file.azathothConstants import Keys, RECOGNIZED_PROGRESSION_MACROS, UpgradeType
+from file.azathothConstants import Keys, PROGRESSION_FIELD_ALIASES, PROGRESSION_MACROS, UpgradeType
 
 
 def _getDisplayName(yaml):
@@ -18,30 +18,26 @@ def _yamlToProgression(yaml):
   '''Produces a Progression from the given YAML representation of one.'''
 
   if isinstance(yaml, str):
-    if yaml in RECOGNIZED_PROGRESSION_MACROS:
-      return _yamlToProgression(RECOGNIZED_PROGRESSION_MACROS[yaml])
+    if yaml in PROGRESSION_MACROS:
+      return _yamlToProgression(PROGRESSION_MACROS[yaml])
     else:
       raise ValueError(f"Progression macro '{yaml}' not recognized.")
 
-  atMost = yaml.get(Keys.AT_MOST)
-  limit = yaml.get(Keys.LIMIT)
+  # If any fields are aliased, replace them and reprocess.
+  if yaml.keys() & PROGRESSION_FIELD_ALIASES.keys():
+    return _yamlToProgression(
+      {PROGRESSION_FIELD_ALIASES.get(k, k): v for k,v in yaml.items()})
+
   increment = yaml.get(Keys.INCREMENT)
+  stopAt = yaml.get(Keys.STOP_AT)
+  spinLimit = yaml.get(Keys.SPIN_LIMIT)
 
   # Allow for singleton values; just wrap them in a list.
   values = yaml.get(Keys.VALUES)
   if values is not None and not isinstance(values, list):
     values = [values]
 
-  # If `increment` and `atMost` are given in the absence of `limit`,
-  #   calculate and set the implied limit.
-  if Keys.INCREMENT in yaml:
-    if Keys.LIMIT not in yaml and Keys.AT_MOST in yaml:
-      numValues = len(values or [])
-      lastValue = values[-1] if numValues > 0 else 0
-      remainingIncrements = (atMost - lastValue)/increment
-      limit = numValues + remainingIncrements
-  
-  return Progression(limit, values, increment)
+  return Progression(values, increment, stopAt=stopAt, limit=spinLimit)
 
 
 
@@ -52,12 +48,11 @@ def _yamlToUpgrade(yaml, game="", upgradeName=""):
   '''
   yamlPath = yaml.get("path")
 
-  # Singletons yaml paths are permitted, but turn them into a list.
+  # Singleton yaml paths are permitted, but turn them into a list.
   if yamlPath and not isinstance(yamlPath, list):
     yamlPath = [yamlPath]
   elif not yamlPath:
     yamlPath = []
-  assert(isinstance(yamlPath, list))
 
   # Ensure that every Upgrade's yamlPath begins with its game.
   if len(yamlPath) == 0 or yamlPath[0] != game:
