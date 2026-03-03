@@ -31,7 +31,15 @@ include all the game YAMLs that you plan to use in your Multiworld Madness.
 **Load Upgrade Wheel** prompts you to select the Azathoth Wheel YAML that
 defines your particular challenge's possible upgrades. Your Wheel must follow
 the [Wheel Schema](#wheel-schema). Upon successfully loading your Wheel, the
-[upgrade selector](#upgrade-selector) interface pane will open.
+[upgrade selector](#upgrade-selector) interface pane will open. Azathoth
+features validation that does its best to identify any problems that your Wheel
+file may have. If your Wheel is not set up correctly, address any errors and
+warnings produced by the tool when attempting to load it.
+
+**Preferences** opens the Preferences editor, where you can make changes to
+your settings. This includes options like setting files to always load when
+starting Azathoth or changing how files might be saved. Preferences are stored
+locally and will persist across sessions.
 
 **Exit** exits the program.
 
@@ -57,8 +65,7 @@ upgrades to a count of `0`.
 The **Save** button will apply all selected upgrades to all uploaded game YAMLs
 and write new YAML files reflecting these upgrades to the selected output
 folder. It will additionally produce a summary file that succinctly collects
-the selected upgrades and their values. **BEWARE**: Files written by this
-process will overwrite any files of the same name.
+the selected upgrades and their values.
 
 ## Wheel Schema
 
@@ -70,10 +77,6 @@ the form of a **Wheel** file.
 The Wheel file, written in YAML, describes exactly one top-level Wheel that
 follows the [Wheel schema](#wheel) and the weighted choices that can be spun on
 that Wheel.
-
-Azathoth features validation that does its best to identify any problems that
-your Wheel file may have. If your Wheel is not set up correctly, address any
-errors and warnings produced by the tool.
 
 A common structure for this file starts with a top-level Wheel that separates
 upgrades for each individual game into their own individual Wheels, each of
@@ -92,18 +95,18 @@ wheel:
         upgrade:
           path: starting_move_count
           progression:
-            atMost: 20
             values: [3]
             increment: 1
+            stopAt: 20
       # Goes up to 5. First upgrade sets to 2, then +1 thereafter.
       - name: Additional Starting Character
         weight: 10
         upgrade:
           path: starting_character_count
           progression:
-            atMost: 5
             values: [2]
             increment: 1
+            stopAt: 5
       # Indefinite upgrade. Starts at 0, then +1 thereafter.
       - name: Start with +1 Banana
         weight: 5
@@ -201,21 +204,28 @@ Progressions describe the value that an upgraded setting will be set to if
 selected. This includes what to do if an upgrade is allowed to be selected
 multiple times and how many times it may be selected.  
 
-Every `Progression` is given _either_ as a dict containing the following keys
-_or_ as a [Macro](#progression-macros) string used for common situations.
+Every `Progression` is a mapping that can contain the following keys:
 
 - `values` - A progressive list of values the upgraded setting will be set to
-  if the upgrade is spun that many times.
-- `increment` - If set, allows upgrades beyond those specified by `values`,
-  adding `increment` to the last entry in `values` for each successive upgrade.
-  If `values` is not given, assumes that this baseline value is `0`.
-- `limit` - If set, caps the number of times this upgrade can be spun.
-- `atMost` - Alternative option to `limit` specifying the highest final value
-  that can be permitted.
+  with each successive upgrade.
+- `increment` - If set, allows upgrades beyond those specified by `values`.
+  After reaching the last entry in `values`, `increment` is added to that value
+  with each successive upgrade.
+- `spinLimit` - If set, limits the **total number of times** this upgrade can
+  be selected.
+- `stopAt` - An alternative to `spinLimit`, this specifies the **final value**
+  that may be reached by adding `increment`s.
+
+For certain common situations, Progressions can _also_ be expressed as a [Macro](#progression-macros).
 
 Theoretically, every progression can be purely defined with `values` alone, but
-the other options allow users to concisely describe indefinite behavior and
-intended caps without having to write all of that out.
+the other options are useful shortcuts that allow you to concisely describe
+repeated behavior and intended caps without having to write every possible
+value individually.
+
+_n.b._ **At least one** of `values` or `increment` must be provided; an
+`increment` without `values` is assumed to be adding to a baseline of `0`.
+**At most one** of `spinLimit` or `stopAt` may be provided.
 
 ### Progression Macros
 
