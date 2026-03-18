@@ -159,7 +159,9 @@ class PreferencesEditor(tk.Toplevel):
 
 
   def createAlternatingSetButton(self, parent, field, updateCommand, clearCommand):
-    '''Creates and returns a button that '''
+    '''Creates and returns a button that alternates function between setting the
+    preference at the given field and clearing it, refreshing relevant widgets.
+    '''
     def updateAndRefresh():
       '''Runs the given update command, then refreshes relevant widgets.'''
       updateCommand()
@@ -173,7 +175,9 @@ class PreferencesEditor(tk.Toplevel):
     setButton = tk.Button(parent)
     def refresh():
       '''Refreshes the preference's set button and its label to reflect state.
-      A set preference is clearable '''
+      When a preference has been set, the button's function is to clear it.
+      When a preference is not set, the button's function is to set it.
+      '''
       self.refreshLabel(field)
       if self.preferences.isDefault(field):
         setButton.configure(text="Set", command=updateAndRefresh)
