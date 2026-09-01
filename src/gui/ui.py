@@ -436,14 +436,11 @@ class AzathothApp(tk.Tk):
     UpgradeChooser to reflect the results.
     """
 
-    wheelLimit =  spinner.getLimitForWheel(self.appData.wheel) # type: ignore
-    if wheelLimit != -1 and wheelLimit < numSpins:
-      self.errorModal("Too Many Spins",
-                      f"Current wheel only supports {wheelLimit} spins, but"
-                      f" {numSpins} were requested.")
-      return
+    upgradeResults, excess = spinner.spinUpgrades(self.appData.wheel, numSpins) # type: ignore
+    if excess > 0:
+      self.errorModal("Unspent Spins",
+                      f"Was unable to spend {excess} spins.")
 
-    upgradeResults = spinner.spinUpgrades(self.appData.wheel, numSpins) # type: ignore
     self.chooser.applyUpgrades(upgradeResults) # type: ignore
 
 
@@ -463,9 +460,7 @@ class AzathothApp(tk.Tk):
       self.chooser.loadUpgrades(self.getAllUpgrades())
       self.chooser.place(x=0, y=0, relwidth=1, relheight=0.90)
 
-      wheelLimit = spinner.getLimitForWheel(self.appData.wheel) # type: ignore
-      spinEntry = tk.Spinbox(chooserPanel, from_=0, increment=1,
-                             to=wheelLimit if wheelLimit >= 0 else INF_LIMIT,
+      spinEntry = tk.Spinbox(chooserPanel, from_=0, increment=1, to=INF_LIMIT,
                              # Validation prevents entering non-numbers.
                              validate="key",
                              validatecommand=(

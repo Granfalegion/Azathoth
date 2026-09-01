@@ -102,10 +102,10 @@ class Upgrade:
   """Describes an upgrade that can be selected.
 
   Attributes:
-    Name:         Display name for upgrade.
-    Type:         Type of upgrade. 
-    YamlPath:     Path to where in the YAML the upgrade is located, if any.
-    Progression:  Upgraded value to be added.
+    name:         Display name for upgrade.
+    type:         Type of upgrade.
+    yamlPath:     Path to where in the YAML the upgrade is located, if any.
+    progression:  Upgraded value to be added.
   """
 
   class Type(Enum):
@@ -139,14 +139,20 @@ class WeightedChoice:
   '''Describes a possible choice on a Wheel.
 
   Attributes:
-    Name:             Name to display for this choice.
-    Weight:           Integer weight for selection.  Summed across all choices.
-    WheelResult:      If spins, rolls a new option from this sub-wheel.
-    UpgradeResult:    If chosen, grants the described upgrade.
+    name:             Name to display for this choice.
+    weight:           Integer weight for choice. Probability of making this
+                        choice is weight over the sum of all weights in this
+                        wheel.
+    cost:             Integer cost for choice. Selecting this choice costs
+                        this many points.
+    wheelResult:      If present, the choice leads to the described sub-wheel
+                        and must be spun again.
+    upgradeResult:    If present, the choice grants the described upgrade.
   '''
-  def __init__(self, name, weight, wheelResult=None, upgradeResult=None):
+  def __init__(self, name, weight, cost, wheelResult=None, upgradeResult=None):
     self.name = name
     self.weight = weight
+    self.cost = cost
 
     # Exactly one of these should be defined.
     self.wheelResult = wheelResult
@@ -158,9 +164,9 @@ class Wheel:
   selections.
 
   Attributes:
-    DisplayName:  Name to display for this wheel.
-    GameName:     Name of the game that this wheel describes.
-    Choices:      List of choices that populate this Wheel's spinnable options.
+    displayName:  Name to display for this wheel.
+    gameName:     Name of the game that this wheel describes.
+    choices:      List of choices that populate this Wheel's spinnable options.
   '''
   def __init__(self, displayName, gameName="", choices = None):
     self.displayName = displayName

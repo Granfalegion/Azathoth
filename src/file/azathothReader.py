@@ -1,6 +1,6 @@
 from data.upgrades import Progression, Upgrade, Wheel, WeightedChoice
 from file import azathothValidator, yamlReader
-from file.azathothConstants import Keys, PROGRESSION_FIELD_ALIASES, PROGRESSION_MACROS, UpgradeType
+from file.azathothConstants import Defaults, Keys, PROGRESSION_FIELD_ALIASES, PROGRESSION_MACROS, UpgradeType
 
 
 def _getDisplayName(yaml):
@@ -42,7 +42,7 @@ def _yamlToProgression(yaml):
 
 
 def _yamlToUpgrade(yaml, game="", upgradeName=""):
-  '''Produces an initial Upgrade structure directly reflecting the given Wheel.
+  '''Produces an initial Upgrade structure directly reflecting the given YAML.
 
   Presumes that values have already been validated.
   '''
@@ -83,18 +83,20 @@ def _yamlToWheel(yaml, game=""):
   # Recursively parse and add each weighted choice.
   for choice in yaml[Keys.WHEEL]:
     choiceName = _getDisplayName(choice)
-    choiceWeight = choice.get(Keys.WEIGHT, 1)
+    choiceWeight = choice.get(Keys.WEIGHT, Defaults.WEIGHT)
 
     if Keys.WHEEL in choice:
       choiceWheel = _yamlToWheel(choice, game)
+      choiceCost = choice.get(Keys.COST, Defaults.WHEEL_COST)
       weightedChoice = WeightedChoice(
-        choiceName, choiceWeight, wheelResult=choiceWheel)
+        choiceName, choiceWeight, cost=choiceCost, wheelResult=choiceWheel)
       wheel.choices.append(weightedChoice)
 
     elif Keys.UPGRADE in choice:
       choiceUpgrade = _yamlToUpgrade(choice[Keys.UPGRADE], game, choiceName)
+      choiceCost = choice.get(Keys.COST, Defaults.UPGRADE_COST)
       weightedChoice = WeightedChoice(
-        choiceName, choiceWeight, upgradeResult=choiceUpgrade)
+        choiceName, choiceWeight, cost=choiceCost, upgradeResult=choiceUpgrade)
       wheel.choices.append(weightedChoice)
 
   return wheel

@@ -55,9 +55,10 @@ value that they will write to their given YAML address. Counters are bound by
 the limits described by your Wheel file for each upgrade and cannot be applied
 more times than allowed.
 
-The **Spin** button will produce the given number of upgrades from your Wheel's
-weighted random distribution and update your selections to reflect them. Note
-that this will clear any selections already made.
+The **Spin** button will randomly select upgrades from your Wheel until
+exhausting the given number of spins.  Your selections are then updated to
+reflect these selections. Note that this will clear any selections already
+made.
 
 The **Clear** button will erase any selections already made and set all
 upgrades to a count of `0`.
@@ -128,12 +129,14 @@ wheel:
       # Lets you die once per upgrade without losing. A self-enforced bonus.
       - name: Additional Life
         weight: 5
+        cost: 1
         upgrade:
           type: manual
           progression: ONE_PER
       # Lowers the damage multiplier by one setting for each upgrade.
       - name: Decrease Damage Multiplier
         weight: 7
+        cost: 3
         upgrade:
           path: damage_multiplier
           progression:
@@ -146,10 +149,10 @@ Every Wheel is written as a dict containing the following keys:
 
 - `name` - The display name for the Wheel.
 - `game` - The game that upgrades in this Wheel belong to.
-- `weight` - The integer weight assigned to this choice on the Wheel above it.
-  (_Default: `1`_)
+- `weight` - [_Optional_] The integer weight assigned to this choice on the
+  Wheel above it. (_Default: `1`_)
 - `wheel` - The list of choices that this Wheel can spin. All entries here are
-either other [Wheels](#wheel) or [upgrades](#upgrade).
+  either other [Wheels](#wheel) or [upgrades](#upgrade).
 
 All Wheels must provide at least one of `name` or `game`. If providing `game`,
 it must exactly match the name used by Archipelago YAMLs identifying the game
@@ -161,7 +164,9 @@ will be applied.
 Every upgrade is written as a dict containing the following keys:
 
 - `name` - The display name for the upgrade.
-- `weight` - The integer weight assigned to this choice on the Wheel above it.
+- `weight` - [_Optional_] The integer weight assigned to this choice on the
+  Wheel above it. Use this to make choices rarer to select. (_Default: `1`_)
+- `cost` - [_Optional_] The cost, in spins, of selecting this upgrade.
   (_Default: `1`_)
 - `upgrade` - A dict describing an upgrade that you can spin, with these keys:
   - `path` - A list of the nested YAML entries in which to locate this setting.
@@ -171,9 +176,10 @@ Every upgrade is written as a dict containing the following keys:
   - `progression` - Describes the value(s) that will be set when receiving this
     upgrade. See [Progressions](#progressions).
 
-\*"Manual" upgrades are upgrades that do not involve changing an actual game
-YAML setting. Examples include giving yourself permission to use an
-otherwise-restricted tool or to ignore some number of game losses.
+\* `manual`-typed upgrades are upgrades that do not involve changing an actual
+game YAML setting and are not enforced by your game. Examples include giving
+yourself permission to use an otherwise-restricted tool or to ignore some
+number of game losses.
 
 Your upgrade's `path` and `progression` ultimately decide what's actually going
 to be written in your upgraded YAMLs. If your upgraded YAML is meant to look
@@ -193,9 +199,9 @@ may optionally include `Game Title` in your upgrade's `path`, but this is
 discouraged.
 
 Upgrades are additive at intermediate levels and overriding at the final level.
-In the above example, the contents of `Game Title`, `a`, and `b` would be
-unchanged by this upgrade except to set `c` equal to `d`. If `b` contains other
-settings, they will not be changed. If `c` already existed, it will be
+_i.e._, in the above example, the contents of `Game Title`, `a`, and `b` would
+be unchanged by this upgrade except to set `c` equal to `d`. If `b` contains
+other settings, they will not be changed. If `c` already existed, it will be
 overwritten by the upgrade and set directly to `d`.
 
 ### Progressions
@@ -321,10 +327,10 @@ strings special meaning. This includes values such as `false`, `true`, `no`,
 If a particular upgrade or Wheel isn't processing correctly, here's some things
 to check:
 
-- Follow any instructions or warnings that Azathoth reports.
-- Check your YAML content in a YAML linter to make sure it is valid YAML (_but
-  bear in mind that it may **validly** be doing something other than what you
-  intended._)
+- Follow any instructions and address any warnings that Azathoth reports.
+- Check your YAML content in a YAML linter to make sure it is valid YAML
+  (_bearing in mind that it may **validly** be doing something other than what
+  you intended._)
 - Double-check that your spacing is consistent. Whitespace matters in YAML.
 - Try wrapping your strings with quotes (`'`) or double-quotes (`"`) so the
   value isn't interpreted as something else.
@@ -338,7 +344,7 @@ instructions that could potentially be hidden in files, so its presence is a
 net good thing that can be slightly annoying in certain, benign circumstances.
 
 While scanning in a YAML to this program, you may see perfectly valid-looking
-YAML fail with an error like the following:
+YAML fail with an error that looks like the following:
 
 ```text
 yaml.parser.ParserError: expected '<document start>', but found '<block mapping start>'
@@ -360,7 +366,7 @@ exactly you can do that depends on your text editor, but regular expressions
 are probably your ally here.
 
 If you encounter similar errors with different bad field names, please alert
-maintainers so the problem can be addressed for future users.
+Azathoth's maintainers so the problem can be addressed for future users.
 
 NOTE: Azathoth specifically sanitizes out the byte sequence `\xEF\xBB\xBF` from
 the example above. If you're curious, it's the Byte Order Mark (_BOM_)
