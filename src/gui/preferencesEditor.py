@@ -174,8 +174,7 @@ class PreferencesEditor(tk.Toplevel):
 
     setButton = tk.Button(parent)
     def refresh():
-      '''Refreshes the preference's set button and its label to reflect state.
-      When a preference has been set, the button's function is to clear it.
+      '''When a preference has been set, the button's function is to clear it.
       When a preference is not set, the button's function is to set it.
       '''
       self.refreshLabel(field)

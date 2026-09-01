@@ -13,6 +13,7 @@ VALID_WHEEL_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
 VALID_UPGRADE_CHOICE_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
   Keys.NAME: [str],
   Keys.WEIGHT: [int],
+  Keys.COST: [int],
   Keys.UPGRADE: [dict],
 }
 
@@ -26,7 +27,7 @@ VALID_UPGRADE_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
 # map of all valid Progression Keys to the type of values permitted for them
 VALID_PROGRESSION_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
   Keys.STOP_AT: [int],
-  Keys.LIMIT: [int],
+  Keys.SPIN_LIMIT: [int],
   Keys.VALUES: [int|str, list],  # Consider if there are other raw types here.
   Keys.INCREMENT: [int],
 }
@@ -42,7 +43,7 @@ def _isWheel(yaml):
   return Keys.WHEEL in yaml
 
 
-def _validateKeysAndValues(yaml, validKeys):
+def _validateKeysAndValueTypes(yaml, validKeys):
   '''Validates that the given yaml only contains Keys in the given validKeys
   and that its associated values are of permitted types.
   '''
@@ -70,7 +71,7 @@ def _validateProgression(yaml):
     return _validateProgression(
       {PROGRESSION_FIELD_ALIASES.get(k, k): v for k, v in yaml.items()})
 
-  _validateKeysAndValues(yaml, VALID_PROGRESSION_KEYS_TO_ALLOWED_TYPES)
+  _validateKeysAndValueTypes(yaml, VALID_PROGRESSION_KEYS_TO_ALLOWED_TYPES)
 
   if Keys.STOP_AT in yaml and Keys.SPIN_LIMIT in yaml:
     raise ValueError(f"Progression {yaml} listed both {Keys.STOP_AT} and"
@@ -88,7 +89,7 @@ def _validateProgression(yaml):
 
 def _validateUpgrade(yaml, game):
   '''Validates that the given YAML describes an Upgrade, per Azathoth spec.'''
-  _validateKeysAndValues(yaml, VALID_UPGRADE_KEYS_TO_ALLOWED_TYPES)
+  _validateKeysAndValueTypes(yaml, VALID_UPGRADE_KEYS_TO_ALLOWED_TYPES)
 
   if not game:
     raise ValueError(f"Upgrade {yaml} does not belong to a listed game.")
@@ -109,12 +110,16 @@ def _validateUpgradeChoice(yaml, game):
   Upgrade, per Azathoth spec.
   '''
 
-  _validateKeysAndValues(yaml, VALID_UPGRADE_CHOICE_KEYS_TO_ALLOWED_TYPES)
+  _validateKeysAndValueTypes(yaml, VALID_UPGRADE_CHOICE_KEYS_TO_ALLOWED_TYPES)
 
   if Keys.UPGRADE not in yaml:
     raise ValueError(f"Upgrade choice {yaml} contained no upgrade!")  
-  if Keys.WEIGHT not in yaml:
-    raise ValueError(f"Upgrade choice {yaml} contained no weight!")
+
+  if Keys.WEIGHT in yaml and yaml[Keys.WEIGHT] < 0:
+    raise ValueError(f"Upgrade choice {yaml} has a negative weight!")
+
+  if Keys.COST in yaml and Keys.UPGRADE in yaml and yaml[Keys.COST] <= 0:
+    raise ValueError(f"Upgrade choice {yaml} has a non-positive cost!")
   
   _validateUpgrade(yaml[Keys.UPGRADE], game)
 
@@ -126,7 +131,7 @@ def _validateWheel(yaml, game=""):
   Recursively checks all sub-YAMLs within as well.
   '''
 
-  _validateKeysAndValues(yaml, VALID_WHEEL_KEYS_TO_ALLOWED_TYPES)
+  _validateKeysAndValueTypes(yaml, VALID_WHEEL_KEYS_TO_ALLOWED_TYPES)
 
   if game and Keys.GAME in yaml and game != yaml[Keys.GAME]:
     raise ValueError(f"Wheel {yaml} listed a game {yaml[Keys.GAME]} but was"
