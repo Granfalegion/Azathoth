@@ -1,9 +1,10 @@
-from data.preferences import Fields as PrefFields
+from data.preferences import Fields as PrefFields, MultipleChoice
 from enum import Enum
 from gui import resources
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox
+from tkinter.simpledialog import Dialog
 
 class EditablePreference():
   '''Editable Preference as described by its data type, the field under which
@@ -16,37 +17,50 @@ class EditablePreference():
     BOOLEAN = 1
     FILEPATH = 2
     FILEPATH_LIST = 3
+    MULTIPLE_CHOICE = 4
 
-  def __init__(self, title, prefType: Type, explanation, initialDir=None):
+  def __init__(self, title, prefType: Type, explanation, validChoices=None):
     self.title = title
     self.prefType = prefType
     self.explanation = explanation
+    self.validChoices = validChoices if validChoices is not None else {}
 
 EDITABLES_BY_FIELD = {
   PrefFields.ON_START_GAME_YAMLS: EditablePreference(
     "Default Game YAMLs",
     EditablePreference.Type.FILEPATH_LIST,
-    'Listed Game YAMLs will be automatically loaded into Azathoth when the'\
-    ' program opens.'
+    "Listed Game YAMLs will be automatically loaded into Azathoth when the"
+    " program opens."
     ),
 
   PrefFields.ON_START_WHEEL: EditablePreference(
     "Default Wheel",
     EditablePreference.Type.FILEPATH,
-    'Listed Wheel will be automatically loaded into Azathoth when the program'\
-    ' opens.'),
+    "Listed Wheel will be automatically loaded into Azathoth when the program"
+    " opens."),
   
   PrefFields.SILENCE_UPGRADE_CLEAR_WARNING: EditablePreference(
     "Silence Upgrade Clear Warning",
     EditablePreference.Type.BOOLEAN,
-    'If enabled, silences and skips warnings when taking an action that would'\
-    ' clear or change your selected upgrades, such as clearing or spinning'\
-    ' new upgrades.'),
+    "If enabled, silences and skips warnings when taking an action that would"
+    " clear or change your selected upgrades, such as clearing or spinning"
+    " new upgrades."),
+
+  PrefFields.NEXT_SPIN_BEHAVIOR: EditablePreference(
+    "Next Spin Behavior",
+    EditablePreference.Type.MULTIPLE_CHOICE,
+    "If set, skips the Spin button's prompt asking if you want to replace or"
+    " add to any existing spins and performs the set behavior instead.",
+    validChoices={
+      MultipleChoice.NextSpinBehavior.REPLACE: "Always Replace",
+      MultipleChoice.NextSpinBehavior.ADD: "Always Add",
+    }
+  ),
 
   PrefFields.WARN_ON_SAVE_OVERWRITE: EditablePreference(
     "Warn on Save Overwrite",
     EditablePreference.Type.BOOLEAN,
-    "If enabled, requires confirmation before overwriting existing files when"\
+    "If enabled, requires confirmation before overwriting existing files when"
     " saving upgraded YAMLs."
   ),
 
@@ -67,7 +81,7 @@ class PreferencesEditor(tk.Toplevel):
     # Set up main window.
     self.geometry("600x400")
     self.title(f"Preferences Editor")
-    self.iconbitmap(bitmap=resources.getPath("img", "Thoth-t.ico"))
+    self.iconbitmap(default=resources.getPath("img", "Thoth-t.ico"))
     self.resizable(False, False)
 
     # Registry of preference field name to its corresponding label variable.
@@ -81,7 +95,8 @@ class PreferencesEditor(tk.Toplevel):
 
   def getDisplayValue(self, field):
     '''Produces a display-ready string describing the current setting of the
-    preference at the given field.'''
+    preference at the given field.
+    '''
     pref = EDITABLES_BY_FIELD.get(field)
 
     if pref:
@@ -94,6 +109,10 @@ class PreferencesEditor(tk.Toplevel):
           return Path(rawValue).name
         case EditablePreference.Type.FILEPATH_LIST:
           return '\n'.join([Path(path).name for path in rawValue])
+        case EditablePreference.Type.MULTIPLE_CHOICE:
+          return (""
+                  if rawValue is MultipleChoice.UNSPECIFIED
+                  else pref.validChoices.get(rawValue))
         case EditablePreference.Type.UNSPECIFIED:
           raise ValueError(f"Cannot display value for unrecognized preference"
                           f" type {pref.prefType}")
@@ -108,7 +127,8 @@ class PreferencesEditor(tk.Toplevel):
       sVar.set(self.getDisplayValue(field))
 
 
-  def createFilepathButton(self, parent, field, initialDir=None):
+  def createFilepathButton(self, parent, field, title="", filetypes=None,
+                           initialDir=None):
     '''Creates and returns a Button that sets and clears the single filepath
     stored in the given preference field.
     '''
@@ -118,8 +138,8 @@ class PreferencesEditor(tk.Toplevel):
       '''
       filename = filedialog.askopenfilename(
           parent=parent,
-          title="Select Default Azathoth Wheel",
-          filetypes=[('Azathoth Wheel', '*.yaml')],
+          title=title,
+          filetypes=filetypes,
           initialdir=initialDir)
       if filename:
         self.preferences.set(field, filename)
@@ -132,7 +152,8 @@ class PreferencesEditor(tk.Toplevel):
         parent, field, updateFilepath, clearFilepath)
 
 
-  def createFilepathListButton(self, parent, field, initialDir=None):
+  def createFilepathListButton(self, parent, field, title=None, filetypes=None,
+                               initialDir=None):
     '''Creates and returns a Button that sets and clears a list of filepaths
     for the preference at given field.
     '''
@@ -142,8 +163,8 @@ class PreferencesEditor(tk.Toplevel):
       '''
       filenames = filedialog.askopenfilenames(
           parent=parent,
-          title="Select Default Game YAMLs",
-          filetypes=[('Game YAMLs', '*.yaml')],
+          title=title,
+          filetypes=filetypes,
           initialdir=initialDir)
       filenames = list(filenames)
       if filenames:
@@ -156,6 +177,49 @@ class PreferencesEditor(tk.Toplevel):
     return self.createAlternatingSetButton(
         parent, field, updateFilepathList, clearFilepathList)
 
+
+  def createValidChoicesSetButton(self, parent, field):
+    '''Creates and returns a button that can clear or set a preference value
+    from among a set of pre-defined valid choices.
+    '''
+
+    initialChoice = self.preferences.get(field)
+    validChoices = EDITABLES_BY_FIELD[field].validChoices
+
+    class MultipleChoiceDialog(Dialog):
+      '''Custom dialog to present radio button choices from among a list of
+      options specific to the relevant preference.
+      '''
+
+      def body(self, master):
+        '''Constructs a stacked set of buttons describing the valid choices.'''
+        self.choiceVar = tk.StringVar(master, initialChoice)
+        for choice, choiceName in validChoices.items():
+          tk.Radiobutton(master, variable=self.choiceVar, text=choiceName,
+                          value=choice, indicatoron=False).pack(fill='x')
+          
+
+      def apply(self):
+        '''Returns the ValidChoice value selected.'''
+        self.result = self.choiceVar.get()
+
+    def setChoice():
+      '''Helper function to open a radio button selector for a list of valid
+      choices.
+      '''
+      selector = MultipleChoiceDialog(self, "Select Preference")
+      result = (selector.result
+                if selector.result is not None
+                else MultipleChoice.UNSPECIFIED)
+      self.preferences.set(field, result)
+      
+
+    def clearChoice():
+      '''Helper function to clear the associated field.'''
+      self.preferences.clear(field)
+
+    return self.createAlternatingSetButton(
+      parent, field, setChoice, clearChoice)
 
 
   def createAlternatingSetButton(self, parent, field, updateCommand, clearCommand):
@@ -255,11 +319,20 @@ class PreferencesEditor(tk.Toplevel):
         displayValue = None   # Checkboxes don't need a display value.
       case EditablePreference.Type.FILEPATH:
         setButton = self.createFilepathButton(
-          layout, field, initialDir=self.getInitialDir(field))
+          layout, field,
+          title="Select Default Azathoth Wheel",
+          filetypes=[('Azathoth Wheel', '*.yaml')],
+          initialDir=self.getInitialDir(field))
         self.fieldToSetButton[field] = setButton
       case EditablePreference.Type.FILEPATH_LIST:
         setButton = self.createFilepathListButton(
-          layout, field, initialDir=self.getInitialDir(field))
+          layout, field,
+          title="Select Default Game YAMLs",
+          filetypes=[('Game YAMLs', '*.yaml')],
+          initialDir=self.getInitialDir(field))
+        self.fieldToSetButton[field] = setButton
+      case EditablePreference.Type.MULTIPLE_CHOICE:
+        setButton = self.createValidChoicesSetButton(layout, field)
         self.fieldToSetButton[field] = setButton
       case _:
         raise ValueError(f"Unsupported editable preference type {editable.prefType}")
@@ -288,7 +361,7 @@ class PreferencesEditor(tk.Toplevel):
         setButton.grid(row=titleRow, column=0)
       title.grid(row=titleRow, column=1, columnspan=3, sticky="w")
       if value:
-        value.grid(row=buttonRow, column=1, columnspan=2)
+        value.grid(row=buttonRow, column=1, columnspan=2, sticky='w')
       if explainer:
         explainer.grid(row=titleRow, column=4, sticky="e")
 

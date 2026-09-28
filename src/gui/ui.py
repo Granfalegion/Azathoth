@@ -1,8 +1,10 @@
-from data.preferences import Preferences, Fields as PrefFields
+from data.preferences import Preferences, Fields as PrefFields, MultipleChoice
 from data.upgrades import Wheel
 from file import azathothReader, upgrader, writer, yamlReader
 from gui import resources
+from gui.memoryModal import MemoryModal
 from gui.preferencesEditor import PreferencesEditor
+from gui.uiConstants import Colors
 from gui.upgradeChooser import UpgradeChooser
 import os
 from pathlib import Path
@@ -173,6 +175,11 @@ class AzathothApp(tk.Tk):
     loadWheelButton.place(x=5, y=35)
     preferencesButton.place(x=5, y=340)
     exitButton.place(x=5, y=370)
+
+    versionLabel = tk.Label(self.parent, text=f"v{self.version}",
+                            fg=Colors.AZATHOTH_BRIGHT, bg=Colors.BG)
+    versionLabel.place(x=40, y=373)
+
 
 
   def loadPreferences(self):
@@ -428,15 +435,69 @@ class AzathothApp(tk.Tk):
   def clearUpgrades(self):
     self.chooser.zeroCounters()
 
+
+  def shouldReplaceModal(self):
+    '''Opens a memory modal asking whether the incoming spins should replace
+    the existing set of selected upgrades.
+    
+    If a preference for this behavior is set, the modal is skipped altogether.
+    If none is set, the modal offers an opportunity to set it.
+
+    Returns a defined ValidChoices value describing intended behavior, or None
+    if the action is canceled.
+    '''
+    nextSpinBehavior = self.preferences.get(PrefFields.NEXT_SPIN_BEHAVIOR)
+    if nextSpinBehavior in [MultipleChoice.NextSpinBehavior.REPLACE,
+                            MultipleChoice.NextSpinBehavior.ADD]:
+      return nextSpinBehavior
+
+
+    REPLACE_RESULT = "replace"
+    ADD_RESULT = "add"
+
+    spinMethodModal = MemoryModal(self.chooser,
+                                  title="Replace Upgrades?",
+                                  message=f"Do you want to replace your"
+                                          " current upgrades or add to them?",
+                                  buttonDict={
+                                    "Replace": REPLACE_RESULT,
+                                    "Add": ADD_RESULT,
+                                  })
+    if spinMethodModal.result == None:
+      return None
+
+    clickedValue, shouldRemember = spinMethodModal.result
+    newBehavior = (MultipleChoice.NextSpinBehavior.REPLACE
+                  if clickedValue == REPLACE_RESULT
+                  else MultipleChoice.NextSpinBehavior.ADD)
+    if shouldRemember:
+      self.preferences.set(PrefFields.NEXT_SPIN_BEHAVIOR, newBehavior)
+    return newBehavior
+
   
   @requireWheel
-  @warnOnUpgradeOverride
   def spinNewUpgrades(self, numSpins):
     """Spins the loaded wheel the indicated number of times, then updates the
     UpgradeChooser to reflect the results.
     """
 
-    upgradeResults, excess = spinner.spinUpgrades(self.appData.wheel, numSpins) # type: ignore
+    currentUpgrades = self.chooser.getUpgradeResults() # type: ignore
+    if currentUpgrades:
+      shouldReplaceUpgrades = self.shouldReplaceModal()
+
+      match shouldReplaceUpgrades:
+        case MultipleChoice.NextSpinBehavior.REPLACE:
+          self.chooser.zeroCounters()     # type: ignore
+          currentUpgrades = {}
+        case MultipleChoice.NextSpinBehavior.ADD:
+          # currentUpgrades already reflects additive behavior.
+          pass
+        case None:
+          return
+
+    upgradeResults, excess = spinner.spinUpgrades(
+      self.appData.wheel, numSpins, currentUpgrades) # type: ignore
+
     if excess > 0:
       self.errorModal("Unspent Spins",
                       f"Was unable to spend {excess} spins.")
@@ -456,7 +517,9 @@ class AzathothApp(tk.Tk):
       chooserPanel = tk.Frame(self.parent, borderwidth=0, highlightthickness=0)
       chooserPanel.place(x=300, y=0, relwidth=0.5, relheight=1)
 
-      self.chooser = UpgradeChooser(chooserPanel, borderwidth=0, highlightthickness=0, height=400, width=400)
+      self.chooser = UpgradeChooser(chooserPanel,
+                                    borderwidth=0, highlightthickness=0,
+                                    height=400, width=400)
       self.chooser.loadUpgrades(self.getAllUpgrades())
       self.chooser.place(x=0, y=0, relwidth=1, relheight=0.90)
 
@@ -472,7 +535,8 @@ class AzathothApp(tk.Tk):
       spinEntry.place(x=10, y=375, width=40)
 
       spinButton = tk.Button(chooserPanel, text="Spin",
-                             command=lambda:self.spinNewUpgrades(int(spinEntry.get())))
+                             command=lambda:self.spinNewUpgrades(
+                                int(spinEntry.get())))
       spinButton.place(x=60, y=372, width=60)
 
       clearButton = tk.Button(chooserPanel, text="Clear",
@@ -480,7 +544,8 @@ class AzathothApp(tk.Tk):
       clearButton.place(x=140, y=372, width=60)
       
       saveButton = tk.Button(chooserPanel, text = "Save",
-                            command=lambda:self.saveUpgrades(self.chooser.getUpgradeResults()))
+                             command=lambda:self.saveUpgrades(
+                                 self.chooser.getUpgradeResults()))
       saveButton.place(x=220, y=372, width=60)
 
       self.buttons.update({
@@ -528,9 +593,9 @@ def start(version):
   """Initializes the main UI for Azathoth and starts running it."""
   root = tk.Tk()
   root.geometry("600x400")
-  root.title(f"Azathoth v{version}")
+  root.title(f"Azathoth")
   root.iconbitmap(bitmap=resources.getPath("img", "Thoth-t.ico"))  # Set icon.
   root.resizable(False, False)  # Disable window resizing
-  
+
   app = AzathothApp(root, version)
   app.run()
