@@ -16,9 +16,18 @@ class Fields:
   LAST_WHEEL_FOLDER = "last_wheel_folder"
   LAST_SAVE_FOLDER = "last_save_folder"
   IGNORE_AZATHOTH_SUMMARY = "ignore_azathoth_summary"
+  NEXT_SPIN_BEHAVIOR = "next_spin_behavior"
   SILENCE_UPGRADE_CLEAR_WARNING = "silence_upgrade_clear_warning"
   WARN_ON_SAVE_OVERWRITE = "warn_on_save_overwrite"
   DISABLE_BLINK = "disable_blink"
+
+# Groups of possible choices allowed for multiple choice preferences.
+class MultipleChoice:
+  UNSPECIFIED = "unspecified"
+
+  class NextSpinBehavior:
+    ADD = "add"
+    REPLACE = "replace"
 
 # Default values used for preference fields.
 DEFAULTS = {
@@ -28,6 +37,7 @@ DEFAULTS = {
   Fields.LAST_GAME_YAMLS_FOLDER: "",
   Fields.LAST_WHEEL_FOLDER: "",
   Fields.LAST_SAVE_FOLDER: "",
+  Fields.NEXT_SPIN_BEHAVIOR: MultipleChoice.UNSPECIFIED,
   Fields.IGNORE_AZATHOTH_SUMMARY: False,
   Fields.SILENCE_UPGRADE_CLEAR_WARNING: False,
   Fields.WARN_ON_SAVE_OVERWRITE: False,

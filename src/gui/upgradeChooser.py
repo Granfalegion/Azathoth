@@ -1,4 +1,5 @@
 from file import upgrader
+from gui.uiConstants import Colors
 from spin import spinner
 import tkinter as tk
 
@@ -16,18 +17,20 @@ class UpDownCounter(tk.Frame):
                                 command=lambda: self.increment(-1))
     self.counterLabel = tk.Label(self, textvariable=self.counter)
     self.upButton = tk.Button(self, text="+",
-                              command = lambda: self.increment(1))
+                              command=lambda: self.increment(1))
     
     self.downButton.grid(row=0, column=0)
     self.counterLabel.grid(row=0, column=1)
     self.upButton.grid(row=0, column=2)
 
     self.refresh()
+
   
   def increment(self, num):
     """Adds the given amount to the counter IntVar."""
     self.set(self.get() + num)
     self.refresh()
+
   
   def set(self, num):
     """Passes set(n) requests down to the counter IntVar."""
@@ -37,6 +40,7 @@ class UpDownCounter(tk.Frame):
   def get(self):
     """Pass get() requests down to the counter IntVar."""
     return self.counter.get()
+
 
   def refresh(self):
     """Refreshes the counter's UI to reflect current state."""
@@ -50,47 +54,55 @@ class UpDownCounter(tk.Frame):
 
 class UpgradeCounter():
   """Representation of a particular Upgrade and its corresponding widgets in
-  the upgrading counting interface.
+  the upgrade chooser interface.
   """
-  def __init__(self, upgrade, label: tk.Label, upDownCounter: UpDownCounter, upgradeValue: tk.Label):
+  def __init__(self, upgrade, nameLabel, upDownCounter, valueLabel):
     self.upgrade = upgrade
-    self.label = label
+    self.nameLabel = nameLabel
     self.upDownCounter = upDownCounter
-    self.upgradeValue = upgradeValue
+    self.valueLabel = valueLabel
+    self.color = Colors.UPGRADE_DEFAULT
 
     self.upDownCounter.counter.trace_add('write', self.refresh)
 
 
   def refresh(self, *args):
-    """Called whenever the spinbox values change."""
-    numUpgrades = self.get()
+    '''Update widgets' state to reflect newly-changed counter value.'''
 
-    if not numUpgrades:
-      # Make invisible
-      self.upgradeValue.configure(text="")
-    else:
+    # Update Value Label
+    if numUpgrades := self.get():
       upgradedValue = upgrader.getValue(self.upgrade, numUpgrades)
       upgradedText = str(upgradedValue)
-
       if upgradedText.isnumeric():
-        # Numeric upgrades use an arrow to differentiate between count and value.
+        # Numeric upgrades use an arrow to distinguish count and value.
         upgradedText = f"=> {upgradedText}"
-      self.upgradeValue.configure(text=upgradedText)
+      self.valueLabel.configure(text=upgradedText)
+    else:
+      # Make invisible
+      self.valueLabel.configure(text="")
+
+    # Update color.
+    self.upDownCounter.counterLabel.configure(fg=self.color)
+    self.valueLabel.configure(fg=self.color)
 
     self.upDownCounter.refresh()
 
+
   def destroy(self):
     """Destroys all objects contained by the counter."""
-    self.label.destroy()
+    self.nameLabel.destroy()
     self.upDownCounter.destroy()
-    self.upgradeValue.destroy()
+    self.valueLabel.destroy()
+
 
   def get(self):
     """Gets the internal counter variable."""
     return self.upDownCounter.get()
 
-  def set(self, value):
+
+  def set(self, value, color=Colors.UPGRADE_DEFAULT):
     """Sets the internal counter variable to the given value."""
+    self.color = color
     self.upDownCounter.set(value)
 
 
@@ -200,10 +212,16 @@ class UpgradeChooser(tk.Frame):
 
   
   def applyUpgrades(self, upgradeResults):
-    """Updates the Chooser UI's selection count."""
+    """Updates the Chooser UI to reflect the given selected upgrades."""
+    upgradedColor = Colors.AZATHOTH_BRIGHT
     for upgrade, counter in self.upgradeCountersByUpgrade.items():
+      oldVal = counter.get()
       newVal = upgradeResults.get(upgrade, 0)
-      counter.set(newVal)
+      counterColor = (upgradedColor
+                          if oldVal != newVal and newVal > 0
+                          else Colors.UPGRADE_DEFAULT)
+
+      counter.set(newVal,color=counterColor)
       counter.refresh()
 
 

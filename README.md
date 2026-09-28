@@ -56,9 +56,10 @@ the limits described by your Wheel file for each upgrade and cannot be applied
 more times than allowed.
 
 The **Spin** button will randomly select upgrades from your Wheel until
-exhausting the given number of spins.  Your selections are then updated to
-reflect these selections. Note that this will clear any selections already
-made.
+exhausting the given budget of spins.  Your selections are then updated to
+reflect these selections.  If there are already selections made in Azathoth,
+you will be given the option of either replacing those selections or adding to
+them with the results of the next spin.
 
 The **Clear** button will erase any selections already made and set all
 upgrades to a count of `0`.

@@ -80,16 +80,17 @@ def _spinWheel(wheel, currentResults, budget) -> WeightedChoice|None:
   return choice
 
 
-def spinUpgrades(wheel: Wheel, spinBudget: int):
+def spinUpgrades(wheel: Wheel, spinBudget: int, existingResults=None):
   '''Randomly selects upgrades by repeatedly spinning the given Wheel and
   deducting each selection's cost from the given budget until no more upgrades
-  can be selected.
+  can be selected. Can optionally be given a baseline dict of results that have
+  already been selected and return results added to those.
 
   Returns results as a dict mapping Upgrades to the number of times selected.
   '''
 
   # Roll your upgrades, tracking how often they each get picked.
-  currentResults = {}
+  currentResults = {} if existingResults is None else existingResults
 
   # TODO: This is recursive. Make it iterative to support GUI-hooked spinners?
   #       A GUI-hooked Spinner that prompts at every level probably needs to
