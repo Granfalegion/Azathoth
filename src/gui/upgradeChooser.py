@@ -1,3 +1,4 @@
+from data.preferences import Fields as PrefFields
 from file import upgrader
 from gui.uiConstants import Colors
 from spin import spinner
@@ -110,9 +111,10 @@ class UpgradeCounter():
 class UpgradeChooser(tk.Frame):
   """Class containing subframe listing upgrades all at once."""
 
-  def __init__(self, parent, *args, **kwargs):
+  def __init__(self, parent, preferences, *args, **kwargs):
     super().__init__(parent, *args, **kwargs)
     self.parent = parent
+    self.preferences = preferences
 
     # Dict mapping upgrade to corresponding UpgradeCounter widget collection.
     self.upgradeCountersByUpgrade = {}
@@ -213,7 +215,7 @@ class UpgradeChooser(tk.Frame):
   
   def applyUpgrades(self, upgradeResults):
     """Updates the Chooser UI to reflect the given selected upgrades."""
-    upgradedColor = Colors.AZATHOTH_BRIGHT
+    upgradedColor = self.preferences.get(PrefFields.UPGRADE_HIGHLIGHT_COLOR)
     for upgrade, counter in self.upgradeCountersByUpgrade.items():
       oldVal = counter.get()
       newVal = upgradeResults.get(upgrade, 0)

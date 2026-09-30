@@ -3,7 +3,7 @@ from enum import Enum
 from gui import resources
 from pathlib import Path
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import colorchooser, filedialog, messagebox
 from tkinter.simpledialog import Dialog
 
 class EditablePreference():
@@ -18,26 +18,35 @@ class EditablePreference():
     FILEPATH = 2
     FILEPATH_LIST = 3
     MULTIPLE_CHOICE = 4
+    COLOR = 5
 
-  def __init__(self, title, prefType: Type, explanation, validChoices=None):
+  def __init__(self, title, prefType: Type, explanation, validChoices=None,
+               setButtonTitle=None, setButtonFiletypes=None):
     self.title = title
     self.prefType = prefType
     self.explanation = explanation
     self.validChoices = validChoices if validChoices is not None else {}
+    self.setButtonTitle = setButtonTitle
+    self.setButtonFiletypes = setButtonFiletypes
 
 EDITABLES_BY_FIELD = {
   PrefFields.ON_START_GAME_YAMLS: EditablePreference(
-    "Default Game YAMLs",
-    EditablePreference.Type.FILEPATH_LIST,
-    "Listed Game YAMLs will be automatically loaded into Azathoth when the"
-    " program opens."
+    title="Default Game YAMLs",
+    prefType=EditablePreference.Type.FILEPATH_LIST,
+    explanation="Listed Game YAMLs will be automatically loaded into Azathoth"
+                " when the program opens.",
+    setButtonTitle="Select Default Game YAMLs",
+    setButtonFiletypes=[('Game YAMLs', '*.yaml')],
     ),
 
   PrefFields.ON_START_WHEEL: EditablePreference(
     "Default Wheel",
     EditablePreference.Type.FILEPATH,
     "Listed Wheel will be automatically loaded into Azathoth when the program"
-    " opens."),
+    " opens.",
+    setButtonTitle="Select Default Azathoth Wheel",
+    setButtonFiletypes=[('Azathoth Wheel', '*.yaml')],
+    ),
   
   PrefFields.SILENCE_UPGRADE_CLEAR_WARNING: EditablePreference(
     "Silence Upgrade Clear Warning",
@@ -64,6 +73,13 @@ EDITABLES_BY_FIELD = {
     " saving upgraded YAMLs."
   ),
 
+  PrefFields.UPGRADE_HIGHLIGHT_COLOR: EditablePreference(
+    "Upgrade Highlight Color",
+    EditablePreference.Type.COLOR,
+    "Describes the color used for newly-spun upgrades to distinguish them from"
+    " other "
+  ),
+
   PrefFields.DISABLE_BLINK: EditablePreference(
     "Disable Blink",
     EditablePreference.Type.BOOLEAN,
@@ -84,11 +100,12 @@ class PreferencesEditor(tk.Toplevel):
     self.iconbitmap(default=resources.getPath("img", "Thoth-t.ico"))
     self.resizable(False, False)
 
-    # Registry of preference field name to its corresponding label variable.
-    self.fieldToLabelVar = dict()
-
-    # Registry of preference field name to its corresponding setter button.
-    self.fieldToSetButton = dict()
+    # Registries of preference field name to its corresponding widgets.
+    self.fieldToTitle = {}            # Title for preference
+    self.fieldToSetButton = {}        # Button for setting preference
+    self.fieldToDisplayLabel = {}     # Label for displaying preference's value
+    self.fieldToDisplayLabelVar = {}  # Underlying variable powering said label
+    self.fieldToExplainer = {}        # Explainer button for preference
 
     self.createUI()
 
@@ -113,6 +130,8 @@ class PreferencesEditor(tk.Toplevel):
           return (""
                   if rawValue is MultipleChoice.UNSPECIFIED
                   else pref.validChoices.get(rawValue))
+        case EditablePreference.Type.COLOR:
+          return rawValue
         case EditablePreference.Type.UNSPECIFIED:
           raise ValueError(f"Cannot display value for unrecognized preference"
                           f" type {pref.prefType}")
@@ -123,8 +142,13 @@ class PreferencesEditor(tk.Toplevel):
     '''Refreshes the display label associated with the given field to reflect
     its most recent value.
     '''
-    if (sVar := self.fieldToLabelVar.get(field)):
+    if (sVar := self.fieldToDisplayLabelVar.get(field)):
       sVar.set(self.getDisplayValue(field))
+
+      # Color labels are written in the given color.
+      if EDITABLES_BY_FIELD[field].prefType == EditablePreference.Type.COLOR:
+        if (displayLabel := self.fieldToDisplayLabel.get(field)):
+          displayLabel.configure(foreground = self.preferences.get(field))
 
 
   def createFilepathButton(self, parent, field, title="", filetypes=None,
@@ -221,6 +245,30 @@ class PreferencesEditor(tk.Toplevel):
     return self.createAlternatingSetButton(
       parent, field, setChoice, clearChoice)
 
+  def createColorSelectorButton(self, parent, field):
+    '''Creates and returns a Button that sets and clears a color for the
+    preference at given field.
+    '''
+    def updateColor():
+      '''Helper function to open a color selector, save its result as a
+      preference, and update the corresponding display label.
+      '''
+      colorChooserResult = colorchooser.askcolor(
+        parent=parent,
+        title="Choose Color",
+        color=self.preferences.get(field),
+      )
+      color = colorChooserResult[1]
+      if color:
+        self.preferences.set(field, color)
+
+    def clearColor():
+      '''Helper function to clear the associated field.'''
+      self.preferences.clear(field)
+    
+    return self.createAlternatingSetButton(
+        parent, field, updateColor, clearColor)
+
 
   def createAlternatingSetButton(self, parent, field, updateCommand, clearCommand):
     '''Creates and returns a button that alternates function between setting the
@@ -290,10 +338,9 @@ class PreferencesEditor(tk.Toplevel):
         return None
 
 
-  def createPrefWidgets(self, field, layout) -> tuple[
-      tk.Label, tk.Button|tk.Checkbutton, tk.Label|None, tk.Button]:
-    '''Creates, registers, and returns a pack of GUI widgets representing the
-    given editable preference. These are:
+  def createPrefWidgets(self, field, layout):
+    '''Creates and registers GUI widgets representing the given editable
+    preference. These include:
       - The title of the preference
       - A button or checkbox to change a preference value
       - [Optional] A label describing the current preference
@@ -302,17 +349,14 @@ class PreferencesEditor(tk.Toplevel):
     editable = EDITABLES_BY_FIELD.get(field)
     if not editable:
       raise ValueError(f"Did not recognize field {field} to create widgets.")
-
-    title = tk.Label(layout, text=editable.title, font="Hultog", justify="left", anchor="w")
-
-    setButton, explainer, displayValue = [None for _ in range(3)]
     
     # Create labels and associated StringVars first, as buttons refer to them.
     displayValueVar = tk.StringVar(layout, value=self.getDisplayValue(field))
-    self.fieldToLabelVar[field] = displayValueVar
-    displayValue = tk.Label(layout, textvariable=displayValueVar, justify="left", anchor="w")
+    displayValue = tk.Label(layout, textvariable=displayValueVar,
+                            justify="left", anchor="w")
 
     # Construct and associate the setting buttons.
+    setButton = None
     match editable.prefType:
       case EditablePreference.Type.BOOLEAN:
         setButton = self.createCheckbox(layout, field)
@@ -320,26 +364,31 @@ class PreferencesEditor(tk.Toplevel):
       case EditablePreference.Type.FILEPATH:
         setButton = self.createFilepathButton(
           layout, field,
-          title="Select Default Azathoth Wheel",
-          filetypes=[('Azathoth Wheel', '*.yaml')],
+          title=editable.setButtonTitle,
+          filetypes=editable.setButtonFiletypes,
           initialDir=self.getInitialDir(field))
-        self.fieldToSetButton[field] = setButton
       case EditablePreference.Type.FILEPATH_LIST:
         setButton = self.createFilepathListButton(
           layout, field,
-          title="Select Default Game YAMLs",
-          filetypes=[('Game YAMLs', '*.yaml')],
+          title=editable.setButtonTitle,
+          filetypes=editable.setButtonFiletypes,
           initialDir=self.getInitialDir(field))
-        self.fieldToSetButton[field] = setButton
       case EditablePreference.Type.MULTIPLE_CHOICE:
         setButton = self.createValidChoicesSetButton(layout, field)
-        self.fieldToSetButton[field] = setButton
+      case EditablePreference.Type.COLOR:
+        setButton = self.createColorSelectorButton(layout, field)
+        displayValue.configure(foreground = self.preferences.get(field))
       case _:
-        raise ValueError(f"Unsupported editable preference type {editable.prefType}")
+        raise ValueError(f"Unsupported preference type {editable.prefType}")
 
-    explainer = self.toExplainer(layout, editable.title, editable.explanation)
-
-    return (title, setButton, displayValue, explainer)
+    self.fieldToTitle[field] = tk.Label(layout, text=editable.title,
+                                        font="Hultog", justify="left",
+                                        anchor="w")
+    self.fieldToSetButton[field] = setButton
+    self.fieldToDisplayLabel[field] = displayValue
+    self.fieldToDisplayLabelVar[field] = displayValueVar
+    self.fieldToExplainer[field] = self.toExplainer(
+      layout, editable.title, editable.explanation)
     
 
 
@@ -355,14 +404,16 @@ class PreferencesEditor(tk.Toplevel):
       titleRow = i * 2
       buttonRow = titleRow + 1
       preferencesLayout.grid_rowconfigure(buttonRow, minsize=25)
-      title, setButton, value, explainer = self.createPrefWidgets(field, preferencesLayout)
+      self.createPrefWidgets(field, preferencesLayout)
       
-      if setButton:
+      if (setButton := self.fieldToSetButton[field]):
         setButton.grid(row=titleRow, column=0)
-      title.grid(row=titleRow, column=1, columnspan=3, sticky="w")
-      if value:
-        value.grid(row=buttonRow, column=1, columnspan=2, sticky='w')
-      if explainer:
+
+      self.fieldToTitle[field].grid(row=titleRow, column=1, columnspan=3,
+                                    sticky="w")
+      if (displayValue := self.fieldToDisplayLabel[field]):
+        displayValue.grid(row=buttonRow, column=1, columnspan=2, sticky='w')
+      if (explainer := self.fieldToExplainer[field]):
         explainer.grid(row=titleRow, column=4, sticky="e")
 
     
