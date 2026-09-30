@@ -1,4 +1,5 @@
 from file import writer, yamlReader
+from gui.uiConstants import Colors
 from pathlib import Path
 import sys
 
@@ -19,6 +20,7 @@ class Fields:
   NEXT_SPIN_BEHAVIOR = "next_spin_behavior"
   SILENCE_UPGRADE_CLEAR_WARNING = "silence_upgrade_clear_warning"
   WARN_ON_SAVE_OVERWRITE = "warn_on_save_overwrite"
+  UPGRADE_HIGHLIGHT_COLOR = "upgrade_highlight_color"
   DISABLE_BLINK = "disable_blink"
 
 # Groups of possible choices allowed for multiple choice preferences.
@@ -41,6 +43,7 @@ DEFAULTS = {
   Fields.IGNORE_AZATHOTH_SUMMARY: False,
   Fields.SILENCE_UPGRADE_CLEAR_WARNING: False,
   Fields.WARN_ON_SAVE_OVERWRITE: False,
+  Fields.UPGRADE_HIGHLIGHT_COLOR: Colors.AZATHOTH_BRIGHT,
   Fields.DISABLE_BLINK: False,
 }
 

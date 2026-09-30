@@ -517,7 +517,7 @@ class AzathothApp(tk.Tk):
       chooserPanel = tk.Frame(self.parent, borderwidth=0, highlightthickness=0)
       chooserPanel.place(x=300, y=0, relwidth=0.5, relheight=1)
 
-      self.chooser = UpgradeChooser(chooserPanel,
+      self.chooser = UpgradeChooser(chooserPanel, self.preferences,
                                     borderwidth=0, highlightthickness=0,
                                     height=400, width=400)
       self.chooser.loadUpgrades(self.getAllUpgrades())
