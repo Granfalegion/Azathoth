@@ -388,7 +388,7 @@ class PreferencesEditor(tk.Toplevel):
     self.fieldToDisplayLabel[field] = displayValue
     self.fieldToDisplayLabelVar[field] = displayValueVar
     self.fieldToExplainer[field] = self.toExplainer(
-      layout, editable.title, editable.explanation)
+        layout, editable.title, editable.explanation)
     
 
 
