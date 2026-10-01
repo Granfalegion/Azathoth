@@ -1,6 +1,6 @@
 from data.preferences import Fields as PrefFields
 from file import upgrader
-from gui.uiConstants import Colors
+from gui.uiConstants import Colors, Events
 from spin import spinner
 import tkinter as tk
 
@@ -31,6 +31,7 @@ class UpDownCounter(tk.Frame):
     """Adds the given amount to the counter IntVar."""
     self.set(self.get() + num)
     self.refresh()
+    self.parent.event_generate(Events.COUNTER_INCREMENT)
 
   
   def set(self, num):
@@ -101,10 +102,15 @@ class UpgradeCounter():
     return self.upDownCounter.get()
 
 
-  def set(self, value, color=Colors.UPGRADE_DEFAULT):
+  def set(self, value):
     """Sets the internal counter variable to the given value."""
-    self.color = color
     self.upDownCounter.set(value)
+
+  def setColor(self, color=Colors.UPGRADE_DEFAULT):
+    """Sets the color to use for displaying the counter value. If no color is
+    given, reverts to its default.
+    """
+    self.color = color
 
 
 
@@ -135,6 +141,7 @@ class UpgradeChooser(tk.Frame):
     """Zeroes out all upgrade counters."""
     for upgradeCounter in self.upgradeCountersByUpgrade.values():
       upgradeCounter.set(0)
+      upgradeCounter.setColor()
       upgradeCounter.refresh()
 
   
@@ -223,7 +230,8 @@ class UpgradeChooser(tk.Frame):
                           if oldVal != newVal and newVal > 0
                           else Colors.UPGRADE_DEFAULT)
 
-      counter.set(newVal,color=counterColor)
+      counter.set(newVal)
+      counter.setColor(counterColor)
       counter.refresh()
 
 

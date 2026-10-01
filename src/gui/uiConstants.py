@@ -8,3 +8,6 @@ class Colors:
   AZATHOTH_SHADE  = '#3e207b'
   AZATHOTH_MURK   = '#31144f'
   AZATHOTH_DARK   = '#171237'
+
+class Events:
+  COUNTER_INCREMENT = '<<counter_increment>>'
