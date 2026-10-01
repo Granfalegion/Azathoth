@@ -87,6 +87,9 @@ EDITABLES_BY_FIELD = {
   ),
 }
 
+WIDTH=600
+HEIGHT=400
+
 class PreferencesEditor(tk.Toplevel):
   
   def __init__(self, parent, preferences):
@@ -95,7 +98,7 @@ class PreferencesEditor(tk.Toplevel):
     self.preferences = preferences
 
     # Set up main window.
-    self.geometry("600x400")
+    self.geometry(f"{WIDTH}x{HEIGHT}")
     self.title(f"Preferences Editor")
     self.iconbitmap(default=resources.getPath("img", "Thoth-t.ico"))
     self.resizable(False, False)
@@ -107,6 +110,7 @@ class PreferencesEditor(tk.Toplevel):
     self.fieldToDisplayLabelVar = {}  # Underlying variable powering said label
     self.fieldToExplainer = {}        # Explainer button for preference
 
+    # Create all widgets.
     self.createUI()
 
 
@@ -388,13 +392,40 @@ class PreferencesEditor(tk.Toplevel):
     self.fieldToDisplayLabel[field] = displayValue
     self.fieldToDisplayLabelVar[field] = displayValueVar
     self.fieldToExplainer[field] = self.toExplainer(
-      layout, editable.title, editable.explanation)
-    
+        layout, editable.title, editable.explanation)
+
+
+  def addSidebarImages(self, canvas, scrollbar, img, imgR=None):
+    '''Adds repeating images to both sides of the given canvas. `img` is used
+    for both sides, unless `imgR` is present, whereupon it is used for the
+    right side.
+    '''
+
+    # TODO: Add scrolling support to move along with scrollable elements.
+    if img.height() <= 0:
+      return
+    if imgR == None:
+      imgR = img
+
+    currentY = 0
+    while currentY < HEIGHT:
+      tk.Label(canvas, image=img, anchor='nw', borderwidth=0).place(
+        x=0, y=currentY, relheight=1, relwidth=1, anchor='nw')
+      tk.Label(canvas, image=imgR, anchor='nw', borderwidth=0).place(
+        x=480, y=currentY, relheight=1, relwidth=1, anchor='nw')
+      currentY += img.height()
+
+    self.preserveLeftImg = img
+    self.preserveRightImg = imgR
 
 
   def createUI(self):
     canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0)
     scrollbar = tk.Scrollbar(self, command=canvas.yview)
+
+    imgL = tk.PhotoImage(file = resources.getPath("img", "ThothSidebarL.png"))
+    imgR = tk.PhotoImage(file = resources.getPath("img", "ThothSidebarR.png"))
+    self.addSidebarImages(canvas, scrollbar, imgL, imgR)
 
     preferencesLayout = tk.Frame(canvas, borderwidth=0, highlightthickness=0)
     preferencesLayout.columnconfigure(0, minsize=50)
@@ -403,7 +434,7 @@ class PreferencesEditor(tk.Toplevel):
     for i, field in enumerate(EDITABLES_BY_FIELD.keys()):
       titleRow = i * 2
       buttonRow = titleRow + 1
-      preferencesLayout.grid_rowconfigure(buttonRow, minsize=25)
+      preferencesLayout.rowconfigure(buttonRow, minsize=25)
       self.createPrefWidgets(field, preferencesLayout)
       
       if (setButton := self.fieldToSetButton[field]):
@@ -419,12 +450,12 @@ class PreferencesEditor(tk.Toplevel):
     
     preferencesLayout.bind(
       "<Configure>",
-      lambda e: canvas.configure(
+      lambda _: canvas.configure(
         scrollregion=canvas.bbox("all")
       )
     )
 
-    canvas.create_window((170,20), window=preferencesLayout, anchor='n')
+    canvas.create_window((280,0), window=preferencesLayout, anchor='n')
     canvas.configure(yscrollcommand=scrollbar.set)
 
     # Set up mouse wheel scrolling on canvas.

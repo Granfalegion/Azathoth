@@ -594,7 +594,7 @@ def start(version):
   root = tk.Tk()
   root.geometry("600x400")
   root.title(f"Azathoth")
-  root.iconbitmap(bitmap=resources.getPath("img", "Thoth-t.ico"))  # Set icon.
+  root.iconbitmap(default=resources.getPath("img", "Thoth-t.ico"))  # Set icon.
   root.resizable(False, False)  # Disable window resizing
 
   app = AzathothApp(root, version)
