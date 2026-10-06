@@ -112,6 +112,7 @@ class PreferencesEditor(tk.Toplevel):
 
     # Create all widgets.
     self.createUI()
+    self.refreshUI()
 
 
   def getDisplayValue(self, field):
@@ -298,6 +299,7 @@ class PreferencesEditor(tk.Toplevel):
         setButton.configure(text="Set", command=updateAndRefresh)
       else:
         setButton.configure(text="Clear", command=clearAndRefresh)
+      self.refreshUI()
 
     refresh()
     return setButton
@@ -423,6 +425,7 @@ class PreferencesEditor(tk.Toplevel):
     canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0)
     scrollbar = tk.Scrollbar(self, command=canvas.yview)
 
+    # TODO: Store these somewhere sensible
     imgL = tk.PhotoImage(file = resources.getPath("img", "ThothSidebarL.png"))
     imgR = tk.PhotoImage(file = resources.getPath("img", "ThothSidebarR.png"))
     self.addSidebarImages(canvas, scrollbar, imgL, imgR)
@@ -446,7 +449,6 @@ class PreferencesEditor(tk.Toplevel):
         displayValue.grid(row=buttonRow, column=1, columnspan=2, sticky='w')
       if (explainer := self.fieldToExplainer[field]):
         explainer.grid(row=titleRow, column=4, sticky="e")
-
     
     preferencesLayout.bind(
       "<Configure>",
@@ -468,3 +470,14 @@ class PreferencesEditor(tk.Toplevel):
 
     scrollbar.pack(side="right", fill="y")
     canvas.pack(side="left", fill="both", expand=True)
+
+
+  def refreshUI(self):
+    """Updates widgets to reflect current state."""
+    for field, title in self.fieldToTitle.items():
+      if field in self.preferences.problems:
+        # TODO: Initialize this once and preserve it somewhere sensible.
+        self.noImg = tk.PhotoImage(file=resources.getPath("img", "no-sm.png"))
+        title.configure(image = self.noImg, compound = tk.LEFT)
+      else:
+        title.configure(image = '')

@@ -195,11 +195,16 @@ class AzathothApp(tk.Tk):
       self.errorModal("Failed to load preferences",
                       f"Could not parse contents as YAML: {e}")
 
-    # Take initialization actions dictated by preferences.    
+    # Take initialization actions dictated by preferences.
     if (startGameYamlFilenames := self.preferences.get(PrefFields.ON_START_GAME_YAMLS)):
       self.loadGamesFiles(filenames=startGameYamlFilenames)
+      if not self.appData.gameYamls:
+        self.preferences.problems[PrefFields.ON_START_GAME_YAMLS] = "Game YAMLs could not be loaded."
+
     if (startWheelFilename := self.preferences.get(PrefFields.ON_START_WHEEL)):
       self.loadWheelFile(filename=startWheelFilename)
+      if self.appData.wheel is EMPTY_WHEEL:
+        self.preferences.problems[PrefFields.ON_START_WHEEL] = "Wheel could not be loaded."
 
 
   def onClose(self):
@@ -219,7 +224,7 @@ class AzathothApp(tk.Tk):
 
     # Set games select button icon
     if self.appData.gameYamls == None:
-      self.buttons[keys.gamesButton].configure(image = None)
+      self.buttons[keys.gamesButton].configure(image = '')
     elif self.appData.gameYamls == []:
       self.buttons[keys.gamesButton].configure(image = self.images[keys.no])
     else:
@@ -227,11 +232,17 @@ class AzathothApp(tk.Tk):
     
     # Set wheel select button icon
     if self.appData.wheel == None:
-      self.buttons[keys.wheelButton].configure(image = None)
+      self.buttons[keys.wheelButton].configure(image = '')
     elif self.appData.wheel == EMPTY_WHEEL:
       self.buttons[keys.wheelButton].configure(image = self.images[keys.no])
     else:
       self.buttons[keys.wheelButton].configure(image = self.images[keys.ok])
+
+    # Set preferences button icon
+    if not self.preferences.problems:
+      self.buttons[keys.preferencesButton].configure(image = '')
+    else:
+      self.buttons[keys.preferencesButton].configure(image = self.images[keys.no])
 
     # Enable/disable save button, if any, if both data types are present.
     saveEnabled = hasGames and hasWheel
@@ -245,6 +256,7 @@ class AzathothApp(tk.Tk):
     self.loadImages()
     self.loadMainButtons()
     self.loadPreferences()
+    self.refresh()
     
     self.parent.mainloop()
 
@@ -267,7 +279,6 @@ class AzathothApp(tk.Tk):
         wheelFolder = Path(filename).parent.as_posix()
         self.preferences.set(PrefFields.LAST_WHEEL_FOLDER, wheelFolder)
       except Exception as e:
-        # TODO: If wheel loaded via preference, signal to preferences editor.
         # TODO: Consider if there's a cleaner way to signal failure and clear.
         self.appData.wheel = EMPTY_WHEEL
         if self.chooser:
@@ -587,6 +598,10 @@ class AzathothApp(tk.Tk):
     editor = PreferencesEditor(self.parent, self.preferences)
     editor.grab_set()
     editor.focus()
+
+    # Wait for editor's destruction, then refresh.
+    editor.wait_window()
+    self.refresh()
 
 
 def start(version):

@@ -56,6 +56,7 @@ class Preferences():
     self.version = version
     self.config = {}
     self.originalConfig = {}
+    self.problems = {}
 
 
   def get(self, field):
@@ -78,10 +79,13 @@ class Preferences():
     else:
       self.clear(field)
 
+    self.problems.pop(field, None)
+
 
   def clear(self, field):
     '''Clears the field from preferences, effectively setting it to default.'''
     self.config.pop(field, None)
+    self.problems.pop(field, None)
 
 
   def isDefault(self, field):
@@ -95,6 +99,11 @@ class Preferences():
     '''Attempts to load preferences from standard storage location.'''
     self.config: dict = yamlReader.readToYaml(_preferencesFilePath()) or dict()
     self.originalConfig: dict = dict(self.config)  # Unclear if deep copy.
+
+    for field, value in self.config.items():
+      # TODO: Consider more than top-level validation.
+      if (valueType := type(value)) != (expectedType := type(DEFAULTS[field])):
+        self.problems[field] = f"Loaded {valueType}, expected {expectedType}"
 
 
   def isDirty(self):
@@ -115,6 +124,13 @@ class Preferences():
     '''Saves preferences to file.'''
     _getAzathothDataDirectory().mkdir(parents=True, exist_ok=True)
     writer.writeYamlToFile(self.config, _preferencesFilePath())
+
+
+  def setProblem(self, field, problem):
+    '''Tags the given field as having the given problem. Mostly useful for
+    flagging values that either don't validate or don't match expected values.
+    '''
+    self.problems[field] = problem
 
 
 # TODO: Should these bits move into the file package maybe?
