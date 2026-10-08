@@ -158,6 +158,21 @@ class WeightedChoice:
     self.wheelResult = wheelResult
     self.upgradeResult = upgradeResult
 
+  def __eq__(self, other):
+    return (isinstance(other, WeightedChoice)
+      and self.name == other.name
+      and self.weight == other.weight
+      and self.cost == other.cost
+      and self.wheelResult == other.wheelResult
+      and self.upgradeResult == other.upgradeResult)
+  
+  def __hash__(self):
+    return hash((self.name, self.weight, self.cost,
+                 self.wheelResult, self.upgradeResult))
+
+  def __repr__(self) -> str:
+    return self.name
+
 
 class Wheel:
   '''Describes a group of weighted choices that can be "spun" to make random
@@ -171,4 +186,17 @@ class Wheel:
   def __init__(self, displayName, gameName="", choices = None):
     self.displayName = displayName
     self.gameName = gameName
-    self.choices = choices if choices is not None else []
+    self.choices = tuple(choices or [])
+
+  def __eq__(self, other):
+    return (isinstance(other, Wheel)
+      and self.displayName == other.displayName
+      and self.gameName == other.gameName
+      and self.choices == other.choices)
+  
+  def __hash__(self):
+    return hash((self.displayName, self.gameName, self.choices))
+
+  def __repr__(self) -> str:
+    return self.displayName
+  

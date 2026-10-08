@@ -165,6 +165,7 @@ will be applied.
 Every upgrade is written as a dict containing the following keys:
 
 - `name` - The display name for the upgrade.
+- `game` - The game that this upgrade belongs to.
 - `weight` - [_Optional_] The integer weight assigned to this choice on the
   Wheel above it. Use this to make choices rarer to select. (_Default: `1`_)
 - `cost` - [_Optional_] The cost, in spins, of selecting this upgrade.
@@ -176,6 +177,10 @@ Every upgrade is written as a dict containing the following keys:
      used.
   - `progression` - Describes the value(s) that will be set when receiving this
     upgrade. See [Progressions](#progressions).
+
+All upgrades must either specify a `game` or be contained in a Wheel that does
+so.  A provided `game` must exactly match the name used by Archipelago YAMLs
+identifying the game in question.
 
 \* `manual`-typed upgrades are upgrades that do not involve changing an actual
 game YAML setting and are not enforced by your game. Examples include giving
