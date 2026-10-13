@@ -1,6 +1,6 @@
 from data.preferences import Fields as PrefFields
 from file import upgrader
-from gui import resources
+from gui.images import keys as imageKeys
 from gui.uiConstants import Colors
 from spin import spinner
 import tkinter as tk
@@ -136,10 +136,11 @@ class UpgradeCounter():
 class UpgradeChooser(tk.Frame):
   """Class containing subframe listing upgrades all at once."""
 
-  def __init__(self, parent, preferences, *args, **kwargs):
+  def __init__(self, parent, preferences, images, *args, **kwargs):
     super().__init__(parent, *args, **kwargs)
     self.parent = parent
     self.preferences = preferences
+    self.images = images
 
     # Dict mapping upgrade to corresponding UpgradeCounter widget collection.
     self.choiceToUpgradeCounter = {}
@@ -147,11 +148,6 @@ class UpgradeChooser(tk.Frame):
     # Dict mapping row to its relevant game label and weight icon.
     self.gameLabels = {}
     self.weightIcons = {}
-
-    # TODO: DO NOT SUBMIT THIS WAY.  JUST FORCING FOR EASY DEV.
-    self.images = {
-      'weight': tk.PhotoImage(file = resources.getPath("img", "weight-sm.png"))
-    }
 
 
   def clearObjects(self):
@@ -211,10 +207,9 @@ class UpgradeChooser(tk.Frame):
           gameLabel = tk.Label(upgradeLayout, text=game, font="Hultog")
           self.gameLabels[currentRow] = gameLabel
 
-          # TODO: Replace this with a more useful common images library that
-          #       the whole UI can reference without performing preservation.
-          weightIcon = tk.Label(upgradeLayout, image=self.images['weight'])
-          self.weightIcons[currentRow] = weightIcon # TODO: Consider making one thing and packing it multiple times.
+          weightIcon = tk.Label(upgradeLayout,
+                                image=self.images.get(imageKeys.weight))
+          self.weightIcons[currentRow] = weightIcon # TODO: Singleton label.
 
           currentRow = currentRow + 1
           currentGame = game
