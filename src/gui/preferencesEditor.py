@@ -1,6 +1,7 @@
 from data.preferences import Fields as PrefFields, MultipleChoice
 from enum import Enum
 from gui import resources
+from gui.images import keys as imageKeys
 from pathlib import Path
 import tkinter as tk
 from tkinter import colorchooser, filedialog, messagebox
@@ -99,10 +100,11 @@ HEIGHT=400
 
 class PreferencesEditor(tk.Toplevel):
   
-  def __init__(self, parent, preferences):
+  def __init__(self, parent, preferences, images):
     super().__init__()
     self.parent = parent
     self.preferences = preferences
+    self.images = images
 
     # Set up main window.
     self.geometry(f"{WIDTH}x{HEIGHT}")
@@ -432,9 +434,8 @@ class PreferencesEditor(tk.Toplevel):
     canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0)
     scrollbar = tk.Scrollbar(self, command=canvas.yview)
 
-    # TODO: Store these somewhere sensible
-    imgL = tk.PhotoImage(file = resources.getPath("img", "ThothSidebarL.png"))
-    imgR = tk.PhotoImage(file = resources.getPath("img", "ThothSidebarR.png"))
+    imgL = self.images.get(imageKeys.sidebarL)
+    imgR = self.images.get(imageKeys.sidebarR)
     self.addSidebarImages(canvas, scrollbar, imgL, imgR)
 
     preferencesLayout = tk.Frame(canvas, borderwidth=0, highlightthickness=0)
@@ -483,8 +484,7 @@ class PreferencesEditor(tk.Toplevel):
     """Updates widgets to reflect current state."""
     for field, title in self.fieldToTitle.items():
       if field in self.preferences.problems:
-        # TODO: Initialize this once and preserve it somewhere sensible.
-        self.noImg = tk.PhotoImage(file=resources.getPath("img", "no-sm.png"))
-        title.configure(image = self.noImg, compound = tk.LEFT)
+        title.configure(image = self.images.get(imageKeys.no),
+                        compound = tk.LEFT)
       else:
         title.configure(image = '')

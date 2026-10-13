@@ -173,7 +173,7 @@ class UpgradeChooser(tk.Frame):
 
   
   def hasAnyUpgrades(self):
-    """Returns whether any of the given upgrade counters have a positive count."""
+    """Returns whether any of the upgrade counters have a positive count."""
     for upgradeCounter in self.choiceToUpgradeCounter.values():
       if upgradeCounter.get() > 0:
         return True
@@ -188,7 +188,7 @@ class UpgradeChooser(tk.Frame):
     scrollbar = tk.Scrollbar(self, command=canvas.yview)
 
     upgradeLayout = tk.Frame(canvas, borderwidth=0, highlightthickness=0)
-    upgradeLayout.grid_columnconfigure(3, minsize=50)   # Forces value column to have min width to minimize UI-thrashing on value-load.
+    upgradeLayout.grid_columnconfigure(3, minsize=50)   # Minimize UI-thrashing
     upgradeLayout.pack()
     
     if allUpgradeChoices:
@@ -203,7 +203,7 @@ class UpgradeChooser(tk.Frame):
         game = upgrade.yamlPath[0]
 
         if currentGame != game:
-          # TODO: Consider adding an icon here to indicate whether this game is loaded or not.
+          # TODO: Add an icon here to indicate whether this game is loaded.
           gameLabel = tk.Label(upgradeLayout, text=game, font="Hultog")
           self.gameLabels[currentRow] = gameLabel
 
@@ -297,7 +297,7 @@ class UpgradeChooser(tk.Frame):
 
   
   def getUpgradeResults(self):
-    """Returns an UpgradeResults dict reflecting the values set in this widget."""
+    """Returns a dict counting how many times each choice is selected."""
     upgradeResults = {}
 
     for counter in self.choiceToUpgradeCounter.values():

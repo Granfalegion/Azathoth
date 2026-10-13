@@ -581,7 +581,7 @@ class AzathothApp(tk.Tk):
   
   def loadPreferencesEditor(self):
     '''Loads Preferences Editor as a toplevel sub-window with forced focus.'''
-    editor = PreferencesEditor(self.parent, self.preferences)
+    editor = PreferencesEditor(self.parent, self.preferences, self.images)
     editor.grab_set()
     editor.focus()
 

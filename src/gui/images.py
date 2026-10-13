@@ -3,17 +3,25 @@ from tkinter import PhotoImage
 
 class keys():
   bg = "backgroundImage"
+
   b1 = "backgroundBlink1Image"
   b2 = "backgroundBlink2Image"
   b3 = "backgroundBlink3Image"
+
   ok = "okImage"
   warn = "warnImage"
   no = "badImage"
+
   weight = "weightIcon"
+
+  sidebarL = "sidebarL"
+  sidebarR = "sidebarR"
+
 
 def loadImage(*args):
   """Creates and returns a TK PhotoImage from the described path."""
   return PhotoImage(file = resources.getPath(*args))
+
 
 class Images():
   """Collection of loaded images used throughout Azathoth's UI."""
@@ -35,7 +43,12 @@ class Images():
 
       # Standalone Icons
       keys.weight: loadImage("img", "weight-sm.png"),
+
+      # Sidebar panels
+      keys.sidebarL: loadImage("img", "ThothSidebarL.png"),
+      keys.sidebarR: loadImage("img", "ThothSidebarR.png"),
     }
 
   def get(self, key):
+    """Returns the image stored under the given key or a blank string."""
     return self.images.get(key, '')
