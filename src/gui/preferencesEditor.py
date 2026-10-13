@@ -66,6 +66,13 @@ EDITABLES_BY_FIELD = {
     }
   ),
 
+  PrefFields.ENABLE_CUSTOM_WEIGHTS: EditablePreference(
+    "Enable Custom Weights",
+    EditablePreference.Type.BOOLEAN,
+    "If enabled, surfaces the weight of upgrade choices in the upgrade chooser"
+    " and allows you to edit them before spinning. (Requires program restart)",
+  ),
+
   PrefFields.WARN_ON_SAVE_OVERWRITE: EditablePreference(
     "Warn on Save Overwrite",
     EditablePreference.Type.BOOLEAN,
