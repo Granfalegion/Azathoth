@@ -2,6 +2,7 @@ from data.preferences import Preferences, Fields as PrefFields, MultipleChoice
 from data.upgrades import Wheel
 from file import azathothReader, upgrader, writer, yamlReader
 from gui import resources
+from gui.images import Images, keys as imageKeys
 from gui.memoryModal import MemoryModal
 from gui.preferencesEditor import PreferencesEditor
 from gui.uiConstants import Colors
@@ -10,7 +11,7 @@ import os
 from pathlib import Path
 from spin import spinner
 import tkinter as tk
-from tkinter import filedialog, messagebox, PhotoImage
+from tkinter import filedialog, messagebox
 
 # Prefix prepended to output upgraded YAML files. Prevents overwrite of inputs.
 UPGRADE_PREFIX = "upgraded-"
@@ -36,15 +37,6 @@ class keys():
   spinButton = "spinButton"
   clearButton = "clearButton"
   saveButton = "saveButton"
-
-  bg = "backgroundImage"
-  b1 = "backgroundBlink1Image"
-  b2 = "backgroundBlink2Image"
-  b3 = "backgroundBlink3Image"
-  ok = "okImage"
-  warn = "warnImage"
-  no = "badImage"
-  weight = "weightIcon"
 
   azathothBlock = "azathoth"
   azathothVersion = "version"
@@ -111,51 +103,15 @@ class AzathothApp(tk.Tk):
     self.version = version
     self.frame = tk.Frame(self.parent)
     self.appData = AppData()
-    self.images = {}
+    self.images = Images()
     self.buttons = {}
     self.chooser = None
     self.parent.protocol("WM_DELETE_WINDOW", self.onClose)
 
   
-  # TODO: It's not clear to me _why_ this must be in its own function exactly,
-  #       but every time I tried to initialize PhotoImages as part of __init__
-  #       nothing worked. Instead, I'm using this as a prerequisite method that
-  #       runs at the head of run(), but leverages existing variables in the
-  #       top level class.
-  def loadImages(self):
-    """Loads and initializes the images in the app."""
-    
-    # Background image.
-    bg = PhotoImage(file = resources.getPath("img", "thoth-w.png"))
-
-    # Blinks.
-    b1 = PhotoImage(file = resources.getPath("img", "thothb1-w.png"))
-    b2 = PhotoImage(file = resources.getPath("img", "thothb2-w.png"))
-    b3 = PhotoImage(file = resources.getPath("img", "thothb3-w.png"))
-
-    # Status Icons for file upload.
-    ok = PhotoImage(file = resources.getPath("img", "ok-sm.png"))
-    warn = PhotoImage(file = resources.getPath("img", "warn-sm.png"))
-    no = PhotoImage(file = resources.getPath("img", "no-sm.png"))
-
-    # Icons
-    weight = PhotoImage(file = resources.getPath("img", "weight-sm.png"))
-
-    self.images = {
-      keys.bg: bg,
-      keys.b1: b1,
-      keys.b2: b2,
-      keys.b3: b3,
-      keys.ok: ok,
-      keys.warn: warn,
-      keys.no: no,
-      keys.weight: weight
-    }
-
-  
   def loadMainButtons(self):
     """Initializes the buttons in the app."""
-    self.bgLabel = tk.Label(self.parent, image=self.images[keys.bg])
+    self.bgLabel = tk.Label(self.parent, image=self.images.get(imageKeys.bg))
     self.bgLabel.place(relx=0,rely=0,relwidth=1, relheight=1, anchor='nw', )
 
     loadGamesButton = tk.Button(self.parent, text = "Load Game YAMLs",
@@ -233,23 +189,23 @@ class AzathothApp(tk.Tk):
     if self.appData.gameYamls == None:
       self.buttons[keys.gamesButton].configure(image = '')
     elif self.appData.gameYamls == []:
-      self.buttons[keys.gamesButton].configure(image = self.images[keys.no])
+      self.buttons[keys.gamesButton].configure(image = self.images.get(imageKeys.no))
     else:
-      self.buttons[keys.gamesButton].configure(image = self.images[keys.ok])
+      self.buttons[keys.gamesButton].configure(image = self.images.get(imageKeys.ok))
     
     # Set wheel select button icon
     if self.appData.wheel == None:
       self.buttons[keys.wheelButton].configure(image = '')
     elif self.appData.wheel == EMPTY_WHEEL:
-      self.buttons[keys.wheelButton].configure(image = self.images[keys.no])
+      self.buttons[keys.wheelButton].configure(image = self.images.get(imageKeys.no))
     else:
-      self.buttons[keys.wheelButton].configure(image = self.images[keys.ok])
+      self.buttons[keys.wheelButton].configure(image = self.images.get(imageKeys.ok))
 
     # Set preferences button icon
     if not self.preferences.problems:
       self.buttons[keys.preferencesButton].configure(image = '')
     else:
-      self.buttons[keys.preferencesButton].configure(image = self.images[keys.no])
+      self.buttons[keys.preferencesButton].configure(image = self.images.get(imageKeys.no))
 
     # Enable/disable save button, if any, if both data types are present.
     saveEnabled = hasGames and hasWheel
@@ -282,7 +238,6 @@ class AzathothApp(tk.Tk):
   
   def run(self):
     """Starts UI."""
-    self.loadImages()
     self.loadMainButtons()
     self.loadPreferences()
     self.refresh()
@@ -442,18 +397,18 @@ class AzathothApp(tk.Tk):
 
   def blink(self):
     '''Blink.'''
-    def updateImage(label, image):
-      label.config(image=image)
+    def updateImage(label, imageKey):
+      label.config(image=self.images.get(imageKey))
 
-    imgs = [
-      self.images[keys.b1],
-      self.images[keys.b2],
-      self.images[keys.b3],
-      self.images[keys.b2],
-      self.images[keys.b1],
-      self.images[keys.bg],
+    imgKeys = [
+      imageKeys.b1,
+      imageKeys.b2,
+      imageKeys.b3,
+      imageKeys.b2,
+      imageKeys.b1,
+      imageKeys.bg,
     ]
-    for i, img in enumerate(imgs):
+    for i, img in enumerate(imgKeys):
       waitMs = i * 80
       self.bgLabel.after(waitMs, updateImage, self.bgLabel, img)
 
@@ -558,7 +513,7 @@ class AzathothApp(tk.Tk):
       chooserPanel = tk.Frame(self.parent, borderwidth=0, highlightthickness=0)
       chooserPanel.place(x=300, y=0, relwidth=0.8, relheight=1)
 
-      self.chooser = UpgradeChooser(chooserPanel, self.preferences,
+      self.chooser = UpgradeChooser(chooserPanel, self.preferences, self.images,
                                     borderwidth=0, highlightthickness=0)
       self.chooser.loadUpgrades(allUpgradeChoices)
       self.chooser.place(x=0, y=0, relwidth=1, relheight=0.90)
