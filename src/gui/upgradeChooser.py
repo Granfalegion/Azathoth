@@ -1,6 +1,7 @@
 from data.preferences import Fields as PrefFields
 from file import upgrader
-from gui.uiConstants import Colors, Events
+from gui import resources
+from gui.uiConstants import Colors
 from spin import spinner
 import tkinter as tk
 
@@ -8,12 +9,14 @@ class UpDownCounter(tk.Frame):
   """Frame comprising a numeric label flanked by up and down increment
   buttons.
   """
-  def __init__(self, parent, limit, *args, **kwargs):
+  def __init__(self, parent, upperLimit=None, lowerLimit=None, startVal=0,
+               *args, **kwargs):
     super().__init__(parent, *args, **kwargs)
     self.parent = parent
-    self.limit = limit
+    self.upperLimit = upperLimit
+    self.lowerLimit = lowerLimit
 
-    self.counter = tk.IntVar(self, 0)
+    self.counter = tk.IntVar(self, startVal)
     self.downButton = tk.Button(self, text="-",
                                 command=lambda: self.increment(-1))
     self.counterLabel = tk.Label(self, textvariable=self.counter)
@@ -31,7 +34,6 @@ class UpDownCounter(tk.Frame):
     """Adds the given amount to the counter IntVar."""
     self.set(self.get() + num)
     self.refresh()
-    self.parent.event_generate(Events.COUNTER_INCREMENT)
 
   
   def set(self, num):
@@ -49,24 +51,28 @@ class UpDownCounter(tk.Frame):
     currentVal = self.counter.get()
 
     self.downButton.configure(
-      state=tk.DISABLED if currentVal == 0 else tk.NORMAL)
+      state=tk.DISABLED if currentVal == self.lowerLimit else tk.NORMAL)
     self.upButton.configure(
-      state=tk.DISABLED if currentVal == self.limit else tk.NORMAL)
+      state=tk.DISABLED if currentVal == self.upperLimit else tk.NORMAL)
 
 
 class UpgradeCounter():
   """Representation of an Upgrade's WeightedChoice and its corresponding
   widgets in the upgrade chooser interface.
   """
-  def __init__(self, choice, nameLabel, upDownCounter, valueLabel):
+  def __init__(self, choice, gridRow, nameLabel, choiceCounter, valueLabel,
+               weightCounter):
     self.choice = choice
+    self.gridRow = gridRow
 
     self.nameLabel = nameLabel
-    self.upDownCounter = upDownCounter
+    self.choiceCounter = choiceCounter
     self.valueLabel = valueLabel
     self.color = Colors.UPGRADE_DEFAULT
 
-    self.upDownCounter.counter.trace_add('write', self.refresh)
+    self.choiceCounter.counter.trace_add('write', self.refresh)
+
+    self.weightCounter = weightCounter
 
 
   def refresh(self, *args):
@@ -85,27 +91,38 @@ class UpgradeCounter():
       self.valueLabel.configure(text="")
 
     # Update color.
-    self.upDownCounter.counterLabel.configure(fg=self.color)
+    self.choiceCounter.counterLabel.configure(fg=self.color)
     self.valueLabel.configure(fg=self.color)
 
-    self.upDownCounter.refresh()
+    self.choiceCounter.refresh()
 
 
   def destroy(self):
     """Destroys all objects contained by the counter."""
     self.nameLabel.destroy()
-    self.upDownCounter.destroy()
+    self.choiceCounter.destroy()
     self.valueLabel.destroy()
+    self.weightCounter.destroy()
 
 
   def get(self):
     """Gets the internal counter variable."""
-    return self.upDownCounter.get()
+    return self.choiceCounter.get()
+
+
+  def getWeight(self):
+    """Gets the weight counter variable."""
+    return self.weightCounter.get()
 
 
   def set(self, value):
-    """Sets the internal counter variable to the given value."""
-    self.upDownCounter.set(value)
+    """Sets the internal choice counter variable to the given value."""
+    self.choiceCounter.set(value)
+
+
+  def setWeight(self, weight):
+    """Sets the internal weight counter variable to the given value."""
+    self.weightCounter.set(weight)
 
 
   def setColor(self, color=Colors.UPGRADE_DEFAULT):
@@ -126,18 +143,29 @@ class UpgradeChooser(tk.Frame):
 
     # Dict mapping upgrade to corresponding UpgradeCounter widget collection.
     self.choiceToUpgradeCounter = {}
-    self.gameLabels = []
+
+    # Dict mapping row to its relevant game label and weight icon.
+    self.gameLabels = {}
+    self.weightIcons = {}
+
+    # TODO: DO NOT SUBMIT THIS WAY.  JUST FORCING FOR EASY DEV.
+    self.images = {
+      'weight': tk.PhotoImage(file = resources.getPath("img", "weight-sm.png"))
+    }
 
 
   def clearObjects(self):
     """Clears all widgets that may already be contained in the chooser."""
     for upgradeCounter in self.choiceToUpgradeCounter.values():
       upgradeCounter.destroy()
-    for gameLabel in self.gameLabels:
+    for gameLabel in self.gameLabels.values():
       gameLabel.destroy()
+    for weightIcon in self.weightIcons.values():
+      weightIcon.destroy()
 
     self.upgradeCountersByUpgrade = {}
-    self.gameLabels = []
+    self.gameLabels = {}
+    self.weightIcons = {}
 
 
   def zeroCounters(self):
@@ -150,7 +178,7 @@ class UpgradeChooser(tk.Frame):
   
   def hasAnyUpgrades(self):
     """Returns whether any of the given upgrade counters have a positive count."""
-    for upgradeCounter in self.upgradeCountersByUpgrade.values():
+    for upgradeCounter in self.choiceToUpgradeCounter.values():
       if upgradeCounter.get() > 0:
         return True
     return False
@@ -164,7 +192,7 @@ class UpgradeChooser(tk.Frame):
     scrollbar = tk.Scrollbar(self, command=canvas.yview)
 
     upgradeLayout = tk.Frame(canvas, borderwidth=0, highlightthickness=0)
-    upgradeLayout.grid_columnconfigure(2, minsize=50)   # Forces value column to have min width to minimize UI-thrashing on value-load.
+    upgradeLayout.grid_columnconfigure(3, minsize=50)   # Forces value column to have min width to minimize UI-thrashing on value-load.
     upgradeLayout.pack()
     
     if allUpgradeChoices:
@@ -176,31 +204,39 @@ class UpgradeChooser(tk.Frame):
 
       for choice in allUpgradeChoices:
         upgrade = choice.upgradeResult
-        # TODO: Account for this being an upgradeChoice and not an upgrade hereafter.
         game = upgrade.yamlPath[0]
 
         if currentGame != game:
           # TODO: Consider adding an icon here to indicate whether this game is loaded or not.
           gameLabel = tk.Label(upgradeLayout, text=game, font="Hultog")
-          self.gameLabels.append(gameLabel)
-          gameLabel.grid(row=currentRow, column=0, columnspan=2)
+          self.gameLabels[currentRow] = gameLabel
+
+          # TODO: Replace this with a more useful common images library that
+          #       the whole UI can reference without performing preservation.
+          weightIcon = tk.Label(upgradeLayout, image=self.images['weight'])
+          self.weightIcons[currentRow] = weightIcon # TODO: Consider making one thing and packing it multiple times.
+
           currentRow = currentRow + 1
           currentGame = game
 
         # Create representative widgets for each upgrade.
         upgradeLabel = tk.Label(upgradeLayout, text=upgrade.name)
-        upgradeLabel.grid(row=currentRow, column=0)
 
         upperLimit = spinner.getLimitForUpgrade(upgrade, {})
-        upDownCounter = UpDownCounter(upgradeLayout, upperLimit if upperLimit >= 0 else None)
-        upDownCounter.grid(row=currentRow, column=1)
+        upDownCounter = UpDownCounter(upgradeLayout,
+                                      upperLimit if upperLimit >= 0 else None,
+                                      lowerLimit=0)
 
         upgradeValue = tk.Label(upgradeLayout, text="")
-        upgradeValue.grid(row=currentRow, column=2)
 
-        upgradeCounter = UpgradeCounter(choice, upgradeLabel, upDownCounter, upgradeValue)
+        weightCounter = UpDownCounter(upgradeLayout,
+                                      upperLimit=None,
+                                      lowerLimit=0,
+                                      startVal=choice.weight)
 
-        # self.upgradeCountersByUpgrade[upgrade] = upgradeCounter
+        upgradeCounter = UpgradeCounter(choice, currentRow, upgradeLabel,
+                                        upDownCounter, upgradeValue,
+                                        weightCounter)
         self.choiceToUpgradeCounter[choice] = upgradeCounter
 
         currentRow = currentRow + 1
@@ -225,6 +261,29 @@ class UpgradeChooser(tk.Frame):
 
     scrollbar.pack(side="right", fill="y")
     canvas.pack(side="left", fill="both", expand=True)
+
+
+  def refresh(self):
+    """Updates the various widgets to account for current app state."""
+
+    for row, gameLabel in self.gameLabels.items():
+      gameLabel.grid(row=row, column=1, columnspan=2)
+
+    for row, weightIcon in self.weightIcons.items():
+      if self.preferences.get(PrefFields.ENABLE_CUSTOM_WEIGHTS):
+        weightIcon.grid(row=row, column=0)
+      else:
+        weightIcon.grid_forget()
+
+    for counter in self.choiceToUpgradeCounter.values():
+      row = counter.gridRow
+      counter.nameLabel.grid(row=row, column=1)
+      counter.choiceCounter.grid(row=row, column=2)
+      counter.valueLabel.grid(row=row, column=3)
+      if self.preferences.get(PrefFields.ENABLE_CUSTOM_WEIGHTS):
+        counter.weightCounter.grid(row=row, column=0)
+      else:
+        counter.weightCounter.grid_forget()
 
   
   def applyUpgrades(self, upgradeResults):
@@ -252,3 +311,14 @@ class UpgradeChooser(tk.Frame):
         upgradeResults[counter.choice.upgradeResult] = upgradeCount
 
     return upgradeResults
+
+
+  def getChoiceWeights(self):
+    """Returns a dict of Choice to integer weight as set by chooser weight
+    counters.  Weight counters are not always visibly present but reflect
+    original weights in the wheel unless changed.
+    """
+    return {
+      choice: int(counter.weightCounter.counter.get() or 0)
+          for choice, counter in self.choiceToUpgradeCounter.items()
+    }

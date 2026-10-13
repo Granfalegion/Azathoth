@@ -18,6 +18,7 @@ class Fields:
   LAST_SAVE_FOLDER = "last_save_folder"
   IGNORE_AZATHOTH_SUMMARY = "ignore_azathoth_summary"
   NEXT_SPIN_BEHAVIOR = "next_spin_behavior"
+  ENABLE_CUSTOM_WEIGHTS = "enable_custom_weights"
   SILENCE_UPGRADE_CLEAR_WARNING = "silence_upgrade_clear_warning"
   WARN_ON_SAVE_OVERWRITE = "warn_on_save_overwrite"
   UPGRADE_HIGHLIGHT_COLOR = "upgrade_highlight_color"
@@ -40,6 +41,7 @@ DEFAULTS = {
   Fields.LAST_WHEEL_FOLDER: "",
   Fields.LAST_SAVE_FOLDER: "",
   Fields.NEXT_SPIN_BEHAVIOR: MultipleChoice.UNSPECIFIED,
+  Fields.ENABLE_CUSTOM_WEIGHTS: False,
   Fields.IGNORE_AZATHOTH_SUMMARY: False,
   Fields.SILENCE_UPGRADE_CLEAR_WARNING: False,
   Fields.WARN_ON_SAVE_OVERWRITE: False,

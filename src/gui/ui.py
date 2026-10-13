@@ -24,6 +24,7 @@ INF_LIMIT = 999999999999
 #       from "Haven't uploaded anything yet"
 EMPTY_WHEEL = Wheel("")
 
+# TODO: Move these to a more standalone space/class.
 class keys():
   """Namespace for keys in collected dicts of UI widgets."""
   gamesButton = "gameButton"
@@ -31,6 +32,7 @@ class keys():
   preferencesButton = "preferencesButton"
   exitButton = "exitButton"
 
+  spinEntry = "spinEntry"
   spinButton = "spinButton"
   clearButton = "clearButton"
   saveButton = "saveButton"
@@ -42,6 +44,7 @@ class keys():
   ok = "okImage"
   warn = "warnImage"
   no = "badImage"
+  weight = "weightIcon"
 
   azathothBlock = "azathoth"
   azathothVersion = "version"
@@ -135,6 +138,9 @@ class AzathothApp(tk.Tk):
     warn = PhotoImage(file = resources.getPath("img", "warn-sm.png"))
     no = PhotoImage(file = resources.getPath("img", "no-sm.png"))
 
+    # Icons
+    weight = PhotoImage(file = resources.getPath("img", "weight-sm.png"))
+
     self.images = {
       keys.bg: bg,
       keys.b1: b1,
@@ -143,13 +149,14 @@ class AzathothApp(tk.Tk):
       keys.ok: ok,
       keys.warn: warn,
       keys.no: no,
+      keys.weight: weight
     }
 
   
   def loadMainButtons(self):
     """Initializes the buttons in the app."""
     self.bgLabel = tk.Label(self.parent, image=self.images[keys.bg])
-    self.bgLabel.place(x=0,y=0,relwidth=1, relheight=1, anchor='nw', )
+    self.bgLabel.place(relx=0,rely=0,relwidth=1, relheight=1, anchor='nw', )
 
     loadGamesButton = tk.Button(self.parent, text = "Load Game YAMLs",
                                 compound = "left",
@@ -249,6 +256,28 @@ class AzathothApp(tk.Tk):
     if keys.saveButton in self.buttons:
       self.buttons[keys.saveButton].configure(
         state=tk.NORMAL if saveEnabled else tk.DISABLED)
+
+    # Stretch or unstretch UI to account for custom weights column.
+    # TODO: Codify dynamic stretching instead of hardcoding.
+    if self.preferences.get(PrefFields.ENABLE_CUSTOM_WEIGHTS):
+      self.parent.geometry("640x400")
+      self.bgLabel.place(x=-20, y=0)
+      if self.chooser:
+        self.buttons[keys.spinEntry].place(x=10+50, y=375, width=40)
+        self.buttons[keys.spinButton].place(x=60+50, y=372, width=60)
+        self.buttons[keys.clearButton].place(x=140+50, y=372, width=60)
+        self.buttons[keys.saveButton].place(x=220+50, y=372, width=60)
+    else:
+      self.parent.geometry("600x400")
+      self.bgLabel.place(x=0, y=0)
+      if self.chooser:
+        self.buttons[keys.spinEntry].place(x=10, y=375, width=40)
+        self.buttons[keys.spinButton].place(x=60, y=372, width=60)
+        self.buttons[keys.clearButton].place(x=140, y=372, width=60)
+        self.buttons[keys.saveButton].place(x=220, y=372, width=60)
+
+    if self.chooser:
+      self.chooser.refresh()
 
   
   def run(self):
@@ -506,8 +535,9 @@ class AzathothApp(tk.Tk):
         case None:
           return
 
+    weights = self.chooser.getChoiceWeights()
     upgradeResults, excess = spinner.spinUpgrades(
-      self.appData.wheel, numSpins, currentUpgrades) # type: ignore
+      self.appData.wheel, numSpins, currentUpgrades, weights) # type: ignore
 
     if excess > 0:
       self.errorModal("Unspent Spins",
@@ -526,11 +556,10 @@ class AzathothApp(tk.Tk):
     allUpgradeChoices = self.getAllUpgradeChoices()
     if allUpgradeChoices:
       chooserPanel = tk.Frame(self.parent, borderwidth=0, highlightthickness=0)
-      chooserPanel.place(x=300, y=0, relwidth=0.5, relheight=1)
+      chooserPanel.place(x=300, y=0, relwidth=0.8, relheight=1)
 
       self.chooser = UpgradeChooser(chooserPanel, self.preferences,
-                                    borderwidth=0, highlightthickness=0,
-                                    height=400, width=400)
+                                    borderwidth=0, highlightthickness=0)
       self.chooser.loadUpgrades(allUpgradeChoices)
       self.chooser.place(x=0, y=0, relwidth=1, relheight=0.90)
 
@@ -543,23 +572,21 @@ class AzathothApp(tk.Tk):
                                ),
                                "%P"),
                              )
-      spinEntry.place(x=10, y=375, width=40)
 
       spinButton = tk.Button(chooserPanel, text="Spin",
                              command=lambda:self.spinNewUpgrades(
-                                int(spinEntry.get())))
-      spinButton.place(x=60, y=372, width=60)
+                                 int(spinEntry.get())))
 
       clearButton = tk.Button(chooserPanel, text="Clear",
                               command=self.clearUpgrades)
-      clearButton.place(x=140, y=372, width=60)
       
       saveButton = tk.Button(chooserPanel, text = "Save",
                              command=lambda:self.saveUpgrades(
                                  self.chooser.getUpgradeResults()))
-      saveButton.place(x=220, y=372, width=60)
 
+      # Buttons only need to be registered.  They are placed by .refresh()
       self.buttons.update({
+        keys.spinEntry: spinEntry,
         keys.spinButton: spinButton,
         keys.clearButton: clearButton,
         keys.saveButton: saveButton,

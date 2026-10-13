@@ -51,36 +51,41 @@ def getMinCostForWheel(wheel: Wheel, currentResults=None):
   return minCost
 
 
-def couldSelect(choice, currentResults, budget):
+def couldSelect(choice, currentResults, budget, overrideWeights):
   '''Returns true if you could make the selected choice given what choices have
-  already been selected and the available cost budget.
+  already been selected, the available cost budget, and the operating weights.
   '''
 
   if (upgrade := choice.upgradeResult):
-    return (choice.cost <= budget and
-            getLimitForUpgrade(upgrade, currentResults) != 0)
+    return (choice.cost <= budget
+            and getLimitForUpgrade(upgrade, currentResults) != 0
+            and overrideWeights.get(choice, 1) > 0)
 
   if (wheel := choice.wheelResult):
     minWheelCost = getMinCostForWheel(wheel, currentResults)
     return minWheelCost != None and minWheelCost <= budget
 
 
-def _spinWheel(wheel, currentResults, budget) -> WeightedChoice|None:
+def _spinWheel(wheel, currentResults, budget, overrideWeights):
   '''Randomly makes a weighted selection of choices from the given wheel,
-  given already-made selections and the available cost budget.
+  given already-made selections and the available cost budget. If any choices
+  are present in the given dictionary of overrideWeights, its corresponding
+  value is used as its weight instead.
   '''
   validChoices = [choice for choice in wheel.choices
-                  if couldSelect(choice, currentResults, budget)]
+                  if couldSelect(choice, currentResults, budget, overrideWeights)]
   if not validChoices:
     return None
 
   # Pair all valid choices with their weights.
-  weights = [choice.weight for choice in validChoices]
+  weights = [overrideWeights.get(choice, choice.weight)
+             for choice in validChoices]
   choice = random.choices(population=validChoices, weights=weights)[0]
   return choice
 
 
-def spinUpgrades(wheel: Wheel, spinBudget: int, existingResults=None):
+def spinUpgrades(wheel: Wheel, spinBudget: int, existingResults=None,
+                 overrideWeights=None):
   '''Randomly selects upgrades by repeatedly spinning the given Wheel and
   deducting each selection's cost from the given budget until no more upgrades
   can be selected. Can optionally be given a baseline dict of results that have
@@ -91,16 +96,17 @@ def spinUpgrades(wheel: Wheel, spinBudget: int, existingResults=None):
 
   # Roll your upgrades, tracking how often they each get picked.
   currentResults = {} if existingResults is None else existingResults
+  weights = {} if overrideWeights is None else overrideWeights
 
   # TODO: This is recursive. Make it iterative to support GUI-hooked spinners?
   #       A GUI-hooked Spinner that prompts at every level probably needs to
   #       instead allow user prompts and display results and things.
   #       Probably a GUISpinner inherits this and overloads this method though.
-  while (choice := _spinWheel(wheel, currentResults, spinBudget)):
+  while (choice := _spinWheel(wheel, currentResults, spinBudget, weights)):
     
     while(choice.upgradeResult is None):
       if (wheelResult := choice.wheelResult):
-        choice = _spinWheel(wheelResult, currentResults, spinBudget)
+        choice = _spinWheel(wheelResult, currentResults, spinBudget, weights)
 
     upgrade, cost = choice.upgradeResult, choice.cost
     currentResults[upgrade] = currentResults.get(upgrade, 0) + 1
