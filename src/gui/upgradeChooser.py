@@ -55,11 +55,12 @@ class UpDownCounter(tk.Frame):
 
 
 class UpgradeCounter():
-  """Representation of a particular Upgrade and its corresponding widgets in
-  the upgrade chooser interface.
+  """Representation of an Upgrade's WeightedChoice and its corresponding
+  widgets in the upgrade chooser interface.
   """
-  def __init__(self, upgrade, nameLabel, upDownCounter, valueLabel):
-    self.upgrade = upgrade
+  def __init__(self, choice, nameLabel, upDownCounter, valueLabel):
+    self.choice = choice
+
     self.nameLabel = nameLabel
     self.upDownCounter = upDownCounter
     self.valueLabel = valueLabel
@@ -73,7 +74,7 @@ class UpgradeCounter():
 
     # Update Value Label
     if numUpgrades := self.get():
-      upgradedValue = upgrader.getValue(self.upgrade, numUpgrades)
+      upgradedValue = upgrader.getValue(self.choice.upgradeResult, numUpgrades)
       upgradedText = str(upgradedValue)
       if upgradedText.isnumeric():
         # Numeric upgrades use an arrow to distinguish count and value.
@@ -106,6 +107,7 @@ class UpgradeCounter():
     """Sets the internal counter variable to the given value."""
     self.upDownCounter.set(value)
 
+
   def setColor(self, color=Colors.UPGRADE_DEFAULT):
     """Sets the color to use for displaying the counter value. If no color is
     given, reverts to its default.
@@ -123,12 +125,13 @@ class UpgradeChooser(tk.Frame):
     self.preferences = preferences
 
     # Dict mapping upgrade to corresponding UpgradeCounter widget collection.
-    self.upgradeCountersByUpgrade = {}
+    self.choiceToUpgradeCounter = {}
     self.gameLabels = []
+
 
   def clearObjects(self):
     """Clears all widgets that may already be contained in the chooser."""
-    for upgradeCounter in self.upgradeCountersByUpgrade.values():
+    for upgradeCounter in self.choiceToUpgradeCounter.values():
       upgradeCounter.destroy()
     for gameLabel in self.gameLabels:
       gameLabel.destroy()
@@ -139,7 +142,7 @@ class UpgradeChooser(tk.Frame):
 
   def zeroCounters(self):
     """Zeroes out all upgrade counters."""
-    for upgradeCounter in self.upgradeCountersByUpgrade.values():
+    for upgradeCounter in self.choiceToUpgradeCounter.values():
       upgradeCounter.set(0)
       upgradeCounter.setColor()
       upgradeCounter.refresh()
@@ -153,8 +156,10 @@ class UpgradeChooser(tk.Frame):
     return False
 
   
-  def loadUpgrades(self, allUpgrades):
-    """Loads in a set of possible upgrades, creating widgets to represent them."""
+  def loadUpgrades(self, allUpgradeChoices):
+    """Loads in a set of possible upgrade choices, creating widgets to
+    represent them.
+    """
     canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0)
     scrollbar = tk.Scrollbar(self, command=canvas.yview)
 
@@ -162,14 +167,16 @@ class UpgradeChooser(tk.Frame):
     upgradeLayout.grid_columnconfigure(2, minsize=50)   # Forces value column to have min width to minimize UI-thrashing on value-load.
     upgradeLayout.pack()
     
-    if allUpgrades:
+    if allUpgradeChoices:
 
       # Track these conditions as we iterate through the upgrade list.
       # Exact row may differ depending on inserted headers.
       currentRow = 0
       currentGame = ""
 
-      for upgrade in allUpgrades:
+      for choice in allUpgradeChoices:
+        upgrade = choice.upgradeResult
+        # TODO: Account for this being an upgradeChoice and not an upgrade hereafter.
         game = upgrade.yamlPath[0]
 
         if currentGame != game:
@@ -191,9 +198,10 @@ class UpgradeChooser(tk.Frame):
         upgradeValue = tk.Label(upgradeLayout, text="")
         upgradeValue.grid(row=currentRow, column=2)
 
-        upgradeCounter = UpgradeCounter(upgrade, upgradeLabel, upDownCounter, upgradeValue)
+        upgradeCounter = UpgradeCounter(choice, upgradeLabel, upDownCounter, upgradeValue)
 
-        self.upgradeCountersByUpgrade[upgrade] = upgradeCounter
+        # self.upgradeCountersByUpgrade[upgrade] = upgradeCounter
+        self.choiceToUpgradeCounter[choice] = upgradeCounter
 
         currentRow = currentRow + 1
     
@@ -218,14 +226,13 @@ class UpgradeChooser(tk.Frame):
     scrollbar.pack(side="right", fill="y")
     canvas.pack(side="left", fill="both", expand=True)
 
-
   
   def applyUpgrades(self, upgradeResults):
     """Updates the Chooser UI to reflect the given selected upgrades."""
     upgradedColor = self.preferences.get(PrefFields.UPGRADE_HIGHLIGHT_COLOR)
-    for upgrade, counter in self.upgradeCountersByUpgrade.items():
+    for choice, counter in self.choiceToUpgradeCounter.items():
       oldVal = counter.get()
-      newVal = upgradeResults.get(upgrade, 0)
+      newVal = upgradeResults.get(choice.upgradeResult, 0)
       counterColor = (upgradedColor
                           if oldVal != newVal and newVal > 0
                           else Colors.UPGRADE_DEFAULT)
@@ -234,15 +241,14 @@ class UpgradeChooser(tk.Frame):
       counter.setColor(counterColor)
       counter.refresh()
 
-
   
   def getUpgradeResults(self):
     """Returns an UpgradeResults dict reflecting the values set in this widget."""
     upgradeResults = {}
 
-    for counter in self.upgradeCountersByUpgrade.values():
+    for counter in self.choiceToUpgradeCounter.values():
       upgradeCount = int(counter.get() or 0)
       if upgradeCount > 0:
-        upgradeResults[counter.upgrade] = upgradeCount
+        upgradeResults[counter.choice.upgradeResult] = upgradeCount
 
     return upgradeResults

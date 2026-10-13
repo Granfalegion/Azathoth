@@ -523,15 +523,15 @@ class AzathothApp(tk.Tk):
     counters that allow you to select how many times each particular upgrade
     has been selected.
     """
-    allUpgrades = self.getAllUpgrades()
-    if allUpgrades:
+    allUpgradeChoices = self.getAllUpgradeChoices()
+    if allUpgradeChoices:
       chooserPanel = tk.Frame(self.parent, borderwidth=0, highlightthickness=0)
       chooserPanel.place(x=300, y=0, relwidth=0.5, relheight=1)
 
       self.chooser = UpgradeChooser(chooserPanel, self.preferences,
                                     borderwidth=0, highlightthickness=0,
                                     height=400, width=400)
-      self.chooser.loadUpgrades(self.getAllUpgrades())
+      self.chooser.loadUpgrades(allUpgradeChoices)
       self.chooser.place(x=0, y=0, relwidth=1, relheight=0.90)
 
       spinEntry = tk.Spinbox(chooserPanel, from_=0, increment=1, to=INF_LIMIT,
@@ -566,22 +566,26 @@ class AzathothApp(tk.Tk):
       })
 
 
-  
   @requireWheel
-  def getAllUpgrades(self):
-    """Returns a list of all upgrades contained in the current AppData's wheel."""
+  def getAllUpgradeChoices(self):
+    """Returns a list of all upgrade choices contained in the current AppData's
+    wheel.
+    """
 
-    def getAllUpgradesFromWheel(wheel: Wheel):
-      """Helper function extracting all upgrades in a wheel and its subwheels."""
+    def getAllUpgradeChoicesFromWheel(wheel: Wheel):
+      """Helper function extracting all upgrade choicess in a wheel and its
+      subwheels.
+      """
+
       allUpgrades = []
       for choice in wheel.choices:
         if choice.wheelResult:
-          allUpgrades = allUpgrades + getAllUpgradesFromWheel(choice.wheelResult)
+          allUpgrades += getAllUpgradeChoicesFromWheel(choice.wheelResult)
         elif choice.upgradeResult:
-          allUpgrades.append(choice.upgradeResult)
+          allUpgrades.append(choice)
       return allUpgrades
 
-    return getAllUpgradesFromWheel(self.appData.wheel)
+    return getAllUpgradeChoicesFromWheel(self.appData.wheel)
 
 
   def errorModal(self, title, text):

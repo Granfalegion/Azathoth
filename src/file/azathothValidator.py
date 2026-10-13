@@ -12,6 +12,7 @@ VALID_WHEEL_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
 # map of all valid Upgrade Choice Keys to the type of values permitted for them
 VALID_UPGRADE_CHOICE_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
   Keys.NAME: [str],
+  Keys.GAME: [str],
   Keys.WEIGHT: [int],
   Keys.COST: [int],
   Keys.UPGRADE: [dict],
@@ -51,7 +52,7 @@ def _validateKeysAndValueTypes(yaml, validKeys):
   for key, value in yaml.items():
     if key not in validKeys:
       raise ValueError(f"YAML contained unexpected key '{key}',"
-                       f" only allows {list(validKeys.Keys())}")
+                       f" only allows {list(validKeys.keys())}")
     if not isinstance(value, tuple(validKeys[key])):
       raise ValueError(f"YAML contained unexpected value {value},"
                        f" must be of type {list(validKeys[key])}")
@@ -105,23 +106,22 @@ def _validateUpgrade(yaml, game):
   _validateProgression(yaml[Keys.PROGRESSION])
 
 
-def _validateUpgradeChoice(yaml, game):
+def _validateUpgradeChoice(yaml, game=""):
   '''Validates that the given YAML describes a Weighted Choice containing an
   Upgrade, per Azathoth spec.
   '''
-
   _validateKeysAndValueTypes(yaml, VALID_UPGRADE_CHOICE_KEYS_TO_ALLOWED_TYPES)
-
   if Keys.UPGRADE not in yaml:
     raise ValueError(f"Upgrade choice {yaml} contained no upgrade!")  
-
   if Keys.WEIGHT in yaml and yaml[Keys.WEIGHT] < 0:
     raise ValueError(f"Upgrade choice {yaml} has a negative weight!")
-
   if Keys.COST in yaml and Keys.UPGRADE in yaml and yaml[Keys.COST] <= 0:
     raise ValueError(f"Upgrade choice {yaml} has a non-positive cost!")
-  
-  _validateUpgrade(yaml[Keys.UPGRADE], game)
+  if game and Keys.GAME in yaml and game != yaml[Keys.GAME]:
+    raise ValueError(f"Choice {yaml} listed game {yaml[Keys.GAME]} but was"
+                     f" already downstream of game {game}!")
+  gameToPassDown = yaml.get(Keys.GAME, game)
+  _validateUpgrade(yaml[Keys.UPGRADE], gameToPassDown)
 
 
 def _validateWheel(yaml, game=""):
@@ -130,16 +130,12 @@ def _validateWheel(yaml, game=""):
 
   Recursively checks all sub-YAMLs within as well.
   '''
-
   _validateKeysAndValueTypes(yaml, VALID_WHEEL_KEYS_TO_ALLOWED_TYPES)
-
   if game and Keys.GAME in yaml and game != yaml[Keys.GAME]:
-    raise ValueError(f"Wheel {yaml} listed a game {yaml[Keys.GAME]} but was"
+    raise ValueError(f"Wheel {yaml} listed game {yaml[Keys.GAME]} but was"
                      f" already downstream of game {game}!")
-
   if Keys.NAME not in yaml and Keys.GAME not in yaml:
     raise ValueError(f"Wheel {yaml} has no name!")
-
   # Validate all downstream choices.
   gameToPassDown = yaml.get(Keys.GAME, game)
   for choice in yaml[Keys.WHEEL]:

@@ -81,6 +81,7 @@ def _yamlToWheel(yaml, game=""):
     wheel.gameName = game
 
   # Recursively parse and add each weighted choice.
+  wheelChoices = []
   for choice in yaml[Keys.WHEEL]:
     choiceName = _getDisplayName(choice)
     choiceWeight = choice.get(Keys.WEIGHT, Defaults.WEIGHT)
@@ -90,15 +91,17 @@ def _yamlToWheel(yaml, game=""):
       choiceCost = choice.get(Keys.COST, Defaults.WHEEL_COST)
       weightedChoice = WeightedChoice(
         choiceName, choiceWeight, cost=choiceCost, wheelResult=choiceWheel)
-      wheel.choices.append(weightedChoice)
+      wheelChoices.append(weightedChoice)
 
     elif Keys.UPGRADE in choice:
+      game = choice.get(Keys.GAME, game)  # UpgradeChoice can set game too.
       choiceUpgrade = _yamlToUpgrade(choice[Keys.UPGRADE], game, choiceName)
       choiceCost = choice.get(Keys.COST, Defaults.UPGRADE_COST)
       weightedChoice = WeightedChoice(
         choiceName, choiceWeight, cost=choiceCost, upgradeResult=choiceUpgrade)
-      wheel.choices.append(weightedChoice)
+      wheelChoices.append(weightedChoice)
 
+  wheel.choices = tuple(wheelChoices)
   return wheel
 
 
