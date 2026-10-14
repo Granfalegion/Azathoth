@@ -25,7 +25,6 @@ INF_LIMIT = 999999999999
 #       from "Haven't uploaded anything yet"
 EMPTY_WHEEL = Wheel("")
 
-# TODO: Move these to a more standalone space/class.
 class keys():
   """Namespace for keys in collected dicts of UI widgets."""
   gamesButton = "gameButton"
@@ -216,17 +215,19 @@ class AzathothApp(tk.Tk):
     # Stretch or unstretch UI to account for custom weights column.
     # TODO: Codify dynamic stretching instead of hardcoding.
     if self.preferences.get(PrefFields.ENABLE_CUSTOM_WEIGHTS):
-      self.parent.geometry("640x400")
-      self.bgLabel.place(x=-20, y=0)
+      self.parent.geometry("660x400")
+      self.bgLabel.place(x=-30, y=0)
       if self.chooser:
-        self.buttons[keys.spinEntry].place(x=10+50, y=375, width=40)
-        self.buttons[keys.spinButton].place(x=60+50, y=372, width=60)
-        self.buttons[keys.clearButton].place(x=140+50, y=372, width=60)
-        self.buttons[keys.saveButton].place(x=220+50, y=372, width=60)
+        self.chooserPanel.place(relwidth=360/660)
+        self.buttons[keys.spinEntry].place(x=10+60, y=375, width=40)
+        self.buttons[keys.spinButton].place(x=60+60, y=372, width=60)
+        self.buttons[keys.clearButton].place(x=140+60, y=372, width=60)
+        self.buttons[keys.saveButton].place(x=220+60, y=372, width=60)
     else:
       self.parent.geometry("600x400")
       self.bgLabel.place(x=0, y=0)
       if self.chooser:
+        self.chooserPanel.place(relwidth=0.5)
         self.buttons[keys.spinEntry].place(x=10, y=375, width=40)
         self.buttons[keys.spinButton].place(x=60, y=372, width=60)
         self.buttons[keys.clearButton].place(x=140, y=372, width=60)
@@ -511,7 +512,8 @@ class AzathothApp(tk.Tk):
     allUpgradeChoices = self.getAllUpgradeChoices()
     if allUpgradeChoices:
       chooserPanel = tk.Frame(self.parent, borderwidth=0, highlightthickness=0)
-      chooserPanel.place(x=300, y=0, relwidth=0.8, relheight=1)
+      chooserPanel.place(x=300, y=0, relwidth=0.5, relheight=1)
+      self.chooserPanel = chooserPanel
 
       self.chooser = UpgradeChooser(chooserPanel, self.preferences, self.images,
                                     borderwidth=0, highlightthickness=0)

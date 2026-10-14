@@ -215,14 +215,14 @@ class UpgradeChooser(tk.Frame):
           currentGame = game
 
         # Create representative widgets for each upgrade.
-        upgradeLabel = tk.Label(upgradeLayout, text=upgrade.name)
+        upgradeLabel = tk.Label(upgradeLayout, text=upgrade.name, width=24)
 
         upperLimit = spinner.getLimitForUpgrade(upgrade, {})
         upDownCounter = UpDownCounter(upgradeLayout,
                                       upperLimit if upperLimit >= 0 else None,
                                       lowerLimit=0)
 
-        upgradeValue = tk.Label(upgradeLayout, text="")
+        upgradeValue = tk.Label(upgradeLayout, text="", width=8)
 
         weightCounter = UpDownCounter(upgradeLayout,
                                       upperLimit=None,
@@ -262,7 +262,7 @@ class UpgradeChooser(tk.Frame):
     """Updates the various widgets to account for current app state."""
 
     for row, gameLabel in self.gameLabels.items():
-      gameLabel.grid(row=row, column=1, columnspan=2)
+      gameLabel.grid(row=row, column=1, columnspan=3)
 
     for row, weightIcon in self.weightIcons.items():
       if self.preferences.get(PrefFields.ENABLE_CUSTOM_WEIGHTS):
@@ -276,8 +276,10 @@ class UpgradeChooser(tk.Frame):
       counter.choiceCounter.grid(row=row, column=2)
       counter.valueLabel.grid(row=row, column=3)
       if self.preferences.get(PrefFields.ENABLE_CUSTOM_WEIGHTS):
+        counter.valueLabel.configure(width=10)
         counter.weightCounter.grid(row=row, column=0)
       else:
+        counter.valueLabel.configure(width=8)
         counter.weightCounter.grid_forget()
 
   
@@ -310,9 +312,11 @@ class UpgradeChooser(tk.Frame):
 
   def getChoiceWeights(self):
     """Returns a dict of Choice to integer weight as set by chooser weight
-    counters.  Weight counters are not always visibly present but reflect
-    original weights in the wheel unless changed.
+    counters. If weight counters are not enabled, returns None.
     """
+    if not self.preferences.get(PrefFields.ENABLE_CUSTOM_WEIGHTS):
+      return None
+
     return {
       choice: int(counter.weightCounter.counter.get() or 0)
           for choice, counter in self.choiceToUpgradeCounter.items()
