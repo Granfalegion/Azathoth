@@ -30,6 +30,7 @@ VALID_PROGRESSION_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
   Keys.STOP_AT: [int],
   Keys.SPIN_LIMIT: [int],
   Keys.VALUES: [int|str, list],  # Consider if there are other raw types here.
+  Keys.DISPLAY_VALUES: [int|str, list],
   Keys.INCREMENT: [int],
 }
 
@@ -58,6 +59,11 @@ def _validateKeysAndValueTypes(yaml, validKeys):
                        f" must be of type {list(validKeys[key])}")
 
 
+def _yamlLength(entry):
+  '''Returns the length of the given list, or 1 if it is not a list.'''
+  return len(entry) if isinstance(entry, list) else 1
+
+
 def _validateProgression(yaml):
   '''Validates that the given YAML describes a Progression, per Azathoth spec.
   '''
@@ -79,13 +85,22 @@ def _validateProgression(yaml):
                      f" {Keys.SPIN_LIMIT}, but only one is allowed.")
 
   if Keys.SPIN_LIMIT in yaml and Keys.VALUES in yaml:
-    if len(yaml[Keys.VALUES]) < yaml[Keys.SPIN_LIMIT]:
+    if _yamlLength(yaml[Keys.VALUES]) > yaml[Keys.SPIN_LIMIT]:
       raise ValueError(f"Progression {yaml} listed more values than its"
                        f" limit of {yaml[Keys.SPIN_LIMIT]} allows.")
 
   if Keys.VALUES not in yaml and Keys.INCREMENT not in yaml:
     raise ValueError(f"Progression {yaml} has neither `values` nor `increment`."
                      " At least one must be given.")
+
+  if Keys.DISPLAY_VALUES in yaml and Keys.INCREMENT in yaml:
+    raise ValueError(f"Progression {yaml} has both `displayValues` and"
+                     " `increment`, but only one is allowed.")
+
+  if Keys.DISPLAY_VALUES in yaml and Keys.VALUES in yaml:
+    if _yamlLength(yaml[Keys.VALUES]) != _yamlLength(yaml[Keys.DISPLAY_VALUES]):
+      raise ValueError(f"Progression {yaml} has different numbers of `values`"
+                       " and `displayValues`.  These must match.")
 
 
 def _validateUpgrade(yaml, game):
@@ -147,8 +162,6 @@ def _validateWheel(yaml, game=""):
       _validateUpgradeChoice(choice, gameToPassDown)
     else:
       raise ValueError(f"Wheel choice {yaml} contained no wheel nor upgrade!")
-
-
 
 
 def validateAzathothYaml(yaml):

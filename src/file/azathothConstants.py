@@ -11,6 +11,7 @@ class Keys:
   TYPE = "type"
   SPIN_LIMIT = "spinLimit"
   VALUES = "values"
+  DISPLAY_VALUES = "displayValues"
   INCREMENT = "increment"
   STOP_AT = "stopAt"
 

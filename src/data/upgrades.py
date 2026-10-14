@@ -33,8 +33,11 @@ class Progression:
 
   Must include at least one of values or increment.
   '''
-  def __init__(self, values=None, increment=None, stopAt=None, limit=None):
+  def __init__(self, values=None, displayValues=None, increment=None,
+               stopAt=None, limit=None):
     self.values = values if values == None else tuple(values)
+    self.displayValues = (displayValues
+                          if displayValues == None else tuple(displayValues))
     self.increment = increment
     self.stopAt = stopAt
     self.limit = limit
@@ -42,16 +45,20 @@ class Progression:
     self._finalize()
 
   def __repr__(self):
-    return f"values: {self.values}\nincrement: {self.increment}\nstopAt: {self.stopAt}"
+    return (f"values: {self.values}\n"
+            f"displayValues: {self.displayValues}\n"
+            f"increment: {self.increment}\n"
+            f"stopAt: {self.stopAt}")
 
   def __eq__(self, other):
     return (isinstance(other, Progression)
       and self.values == other.values
+      and self.displayValues == other.displayValues
       and self.increment == other.increment
       and self.stopAt == other.stopAt)
 
   def __hash__(self):
-    return hash((self.values, self.increment, self.stopAt))
+    return hash((self.values, self.displayValues, self.increment, self.stopAt))
 
 
   def _getStopAt(self):
