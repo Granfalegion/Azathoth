@@ -11,9 +11,10 @@ def _indent(level):
   return ''.join([INDENT for _ in range(level)])
 
 
-def getValue(upgrade: Upgrade, num: int):
+def getValue(upgrade: Upgrade, num: int, useDisplayValues=False):
   '''Returns the value output by this upgrade when it has been selected a
-  number of times.
+  number of times. If useDisplayValues is true, instead returns the
+  corresponding entry in the upgrade's displayValues list.
   '''
 
   if num <= 0:
@@ -30,8 +31,12 @@ def getValue(upgrade: Upgrade, num: int):
 
   # TODO: Revisit the logic order here. Checking num==limit twice feels bad.
 
-  # First check if we have a values list to base this on...
-  if values:= progression.values:
+  # First check if we have displayValues and they're requested.
+  if (useDisplayValues and
+      progression.displayValues and num <= len(progression.displayValues)):
+    return progression.displayValues[num-1]
+  # Otherwise, check if we have a values list to base this on...
+  elif values:= progression.values:
     # If num is in the values list, report it directly.
     if num <= len(values):
       return values[num-1]
@@ -88,6 +93,8 @@ def toSummaryYamlStr(upgradeResults: dict, version=None):
 
       # Start the game block if you're not already in it.
       if not lastPath or lastPath[0] != gameTitle:
+        if ":" in gameTitle:
+          gameTitle = f"'{gameTitle}'"  # Escape troublesome characters.
         output += f"{gameTitle}:\n"
 
       # Then write the upgrade as a comment.

@@ -220,6 +220,8 @@ Every `Progression` is a mapping that can contain the following keys:
 
 - `values` - A progressive list of values the upgraded setting will be set to
   with each successive upgrade.
+- `displayValues` - If set, a progressive list of substitute strings used when
+  displaying the upgraded value in the UI. Not compatible with `increment`.
 - `increment` - If set, allows upgrades beyond those specified by `values`.
   After reaching the last entry in `values`, `increment` is added to that value
   with each successive upgrade.
@@ -230,14 +232,16 @@ Every `Progression` is a mapping that can contain the following keys:
 
 For certain common situations, Progressions can _also_ be expressed as a [Macro](#progression-macros).
 
-Theoretically, every progression can be purely defined with `values` alone, but
-the other options are useful shortcuts that allow you to concisely describe
-repeated behavior and intended caps without having to write every possible
-value individually.
+Theoretically, every progression can be purely mechanically defined with
+`values` alone, but the other options are useful shortcuts that allow you to
+concisely describe repeated behavior and intended caps without having to write
+out every possible value individually.
 
 _n.b._ **At least one** of `values` or `increment` must be provided; an
 `increment` without `values` is assumed to be adding to a baseline of `0`.
-**At most one** of `spinLimit` or `stopAt` may be provided.
+**At most one** of `spinLimit` or `stopAt` may be provided.  `displayValues`
+and `increment` are not compatible and cannot be included on the same
+progression.
 
 ### Progression Macros
 

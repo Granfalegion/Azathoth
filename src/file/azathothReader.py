@@ -2,7 +2,6 @@ from data.upgrades import Progression, Upgrade, Wheel, WeightedChoice
 from file import azathothValidator, yamlReader
 from file.azathothConstants import Defaults, Keys, PROGRESSION_FIELD_ALIASES, PROGRESSION_MACROS, UpgradeType
 
-
 def _getDisplayName(yaml):
   '''Returns the display name to use for the given YAML object.'''
   if Keys.NAME in yaml:
@@ -11,7 +10,6 @@ def _getDisplayName(yaml):
     return yaml[Keys.GAME]
   else:
     return ""
-
 
 
 def _yamlToProgression(yaml):
@@ -37,8 +35,13 @@ def _yamlToProgression(yaml):
   if values is not None and not isinstance(values, list):
     values = [values]
 
-  return Progression(values, increment, stopAt=stopAt, limit=spinLimit)
+  # Allow for singleton display values; just wrap them in a list.
+  displayValues = yaml.get(Keys.DISPLAY_VALUES)
+  if displayValues is not None and not isinstance(displayValues, list):
+    displayValues = [displayValues]
 
+  return Progression(values=values, displayValues=displayValues,
+                     increment=increment, stopAt=stopAt, limit=spinLimit)
 
 
 def _yamlToUpgrade(yaml, game="", upgradeName=""):
@@ -103,7 +106,6 @@ def _yamlToWheel(yaml, game=""):
 
   wheel.choices = tuple(wheelChoices)
   return wheel
-
 
 
 def azathothToWheel(azathothYamlFilePath):

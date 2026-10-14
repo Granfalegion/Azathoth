@@ -143,7 +143,6 @@ class AzathothApp(tk.Tk):
     versionLabel.place(x=40, y=373)
 
 
-
   def loadPreferences(self):
     self.preferences = Preferences(version=self.version)
 

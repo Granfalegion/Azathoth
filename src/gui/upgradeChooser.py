@@ -80,7 +80,8 @@ class UpgradeCounter():
 
     # Update Value Label
     if numUpgrades := self.get():
-      upgradedValue = upgrader.getValue(self.choice.upgradeResult, numUpgrades)
+      upgradedValue = upgrader.getValue(self.choice.upgradeResult, numUpgrades,
+                                        useDisplayValues=True)
       upgradedText = str(upgradedValue)
       if upgradedText.isnumeric():
         # Numeric upgrades use an arrow to distinguish count and value.
