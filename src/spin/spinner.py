@@ -28,12 +28,15 @@ def getLimitForUpgrade(upgrade: Upgrade, currentResults):
     return -1
 
 
-def getMinCostForWheel(wheel: Wheel, currentResults=None):
+def getMinCostForWheel(wheel: Wheel, currentResults=None,
+                       overrideWeights=None):
   '''Returns the minimum cost for any still-selectable choices on the given
   wheel, given what's been selected already.'''
 
   if currentResults == None:
     currentResults = {}
+  if overrideWeights == None:
+    overrideWeights = {}
 
   minCost = None
   for choice in wheel.choices:
@@ -41,6 +44,11 @@ def getMinCostForWheel(wheel: Wheel, currentResults=None):
     # Skip maxed-out upgrade choices.
     if (choice.upgradeResult and 
         getLimitForUpgrade(choice.upgradeResult, currentResults) == 0):
+      continue
+
+    # Skip zero-weight choices.
+    if (choice.upgradeResult and
+        overrideWeights.get(choice, choice.weight) == 0):
       continue
 
     choiceCost = (choice.cost if choice.upgradeResult
@@ -62,7 +70,7 @@ def couldSelect(choice, currentResults, budget, overrideWeights):
             and overrideWeights.get(choice, 1) > 0)
 
   if (wheel := choice.wheelResult):
-    minWheelCost = getMinCostForWheel(wheel, currentResults)
+    minWheelCost = getMinCostForWheel(wheel, currentResults, overrideWeights)
     return minWheelCost != None and minWheelCost <= budget
 
 
