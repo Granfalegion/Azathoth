@@ -165,7 +165,7 @@ will be applied.
 Every upgrade is written as a dict containing the following keys:
 
 - `name` - The display name for the upgrade.
-- `game` - The game that this upgrade belongs to.
+- `game` - [_Optional*_] The game that this upgrade belongs to.
 - `weight` - [_Optional_] The integer weight assigned to this choice on the
   Wheel above it. Use this to make choices rarer to select. (_Default: `1`_)
 - `cost` - [_Optional_] The cost, in spins, of selecting this upgrade.
@@ -173,19 +173,19 @@ Every upgrade is written as a dict containing the following keys:
 - `upgrade` - A dict describing an upgrade that you can spin, with these keys:
   - `path` - A list of the nested YAML entries in which to locate this setting.
     Manual* upgrades should not set a `path`.
-  - `type` - Set to `manual` when specifying manual* upgrades, otherwise not
+  - `type` - Set to `manual` when specifying manual\*\* upgrades, otherwise not
      used.
   - `progression` - Describes the value(s) that will be set when receiving this
     upgrade. See [Progressions](#progressions).
 
-All upgrades must either specify a `game` or be contained in a Wheel that does
-so.  A provided `game` must exactly match the name used by Archipelago YAMLs
-identifying the game in question.
+\* All upgrades must either specify a `game` or be contained in a Wheel that
+does so.  A provided `game` must exactly match the name used by Archipelago
+YAMLs identifying the game in question.
 
-\* `manual`-typed upgrades are upgrades that do not involve changing an actual
-game YAML setting and are not enforced by your game. Examples include giving
-yourself permission to use an otherwise-restricted tool or to ignore some
-number of game losses.
+\*\* `manual`-typed upgrades are upgrades that do not involve changing an
+actual game YAML setting and are not enforced by your game. Examples include
+giving yourself permission to use an otherwise-restricted tool or to ignore
+some number of game losses.
 
 Your upgrade's `path` and `progression` ultimately decide what's actually going
 to be written in your upgraded YAMLs. If your upgraded YAML is meant to look

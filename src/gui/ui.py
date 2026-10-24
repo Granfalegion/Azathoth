@@ -1,3 +1,4 @@
+from copy import deepcopy
 from data.preferences import Preferences, Fields as PrefFields, MultipleChoice
 from data.upgrades import Wheel
 from file import azathothReader, upgrader, writer, yamlReader
@@ -32,6 +33,7 @@ class keys():
   preferencesButton = "preferencesButton"
   exitButton = "exitButton"
 
+  saveWeightsButton = "saveWeightsButton"
   spinEntry = "spinEntry"
   spinButton = "spinButton"
   clearButton = "clearButton"
@@ -88,10 +90,20 @@ class AppData():
 
   # gameYamls -> List of tuples: (gameYaml, gameYamlFileName)
   # wheel -> Azathoth Wheel object.
-  def __init__(self, gameYamls = None, wheel = None):
+  def __init__(self, gameYamls = None, wheel = None, wheelYaml = None):
     super().__init__()
     self.gameYamls = gameYamls
     self.wheel = wheel
+
+    # Stored copy of the original YAML that produced the loaded wheel.
+    self.originalWheelYaml = wheelYaml
+
+
+  def clearWheel(self):
+    """Sets current wheel and wheel artifacts to empty default state."""
+    # TODO: Consider if there's a cleaner way to signal failure and clear.
+    self.wheel = EMPTY_WHEEL
+    self.originalWheelYaml = None
 
 
 
@@ -218,6 +230,7 @@ class AzathothApp(tk.Tk):
       self.bgLabel.place(x=-30, y=0)
       if self.chooser:
         self.chooserPanel.place(relwidth=360/660)
+        self.buttons[keys.saveWeightsButton].place(x=5, y=372, width=60)
         self.buttons[keys.spinEntry].place(x=10+60, y=375, width=40)
         self.buttons[keys.spinButton].place(x=60+60, y=372, width=60)
         self.buttons[keys.clearButton].place(x=140+60, y=372, width=60)
@@ -227,6 +240,7 @@ class AzathothApp(tk.Tk):
       self.bgLabel.place(x=0, y=0)
       if self.chooser:
         self.chooserPanel.place(relwidth=0.5)
+        self.buttons[keys.saveWeightsButton].place_forget()
         self.buttons[keys.spinEntry].place(x=10, y=375, width=40)
         self.buttons[keys.spinButton].place(x=60, y=372, width=60)
         self.buttons[keys.clearButton].place(x=140, y=372, width=60)
@@ -258,13 +272,15 @@ class AzathothApp(tk.Tk):
                   initialdir=self.preferences.get(PrefFields.LAST_WHEEL_FOLDER) or None)
     if filename:
       try:
-        self.appData.wheel = azathothReader.azathothToWheel(filename)
+        wheelYaml = azathothReader.getValidYaml(filename)
+        self.appData.originalWheelYaml = deepcopy(wheelYaml)
+        wheel = azathothReader.azathothToWheel(azathothYaml=wheelYaml)
+        self.appData.wheel = wheel
         self.openChooser()
         wheelFolder = Path(filename).parent.as_posix()
         self.preferences.set(PrefFields.LAST_WHEEL_FOLDER, wheelFolder)
       except Exception as e:
-        # TODO: Consider if there's a cleaner way to signal failure and clear.
-        self.appData.wheel = EMPTY_WHEEL
+        self.appData.clearWheel()
         if self.chooser:
           self.chooser.clearObjects()
         self.errorModal("Failed to load Wheel", e)
@@ -490,7 +506,7 @@ class AzathothApp(tk.Tk):
         case None:
           return
 
-    weights = self.chooser.getChoiceWeights()
+    weights = self.chooser.getChoiceWeights() # type: ignore
     upgradeResults, excess = spinner.spinUpgrades(
       self.appData.wheel, numSpins, currentUpgrades, weights) # type: ignore
 
@@ -500,6 +516,28 @@ class AzathothApp(tk.Tk):
 
     self.chooser.applyUpgrades(upgradeResults) # type: ignore
 
+
+  @requireWheel
+  def saveWeights(self):
+    choiceWeights = self.chooser.getChoiceWeights()  # type: ignore
+    if (choiceWeights is None or
+        not any(choice.weight != weight
+                for choice, weight in choiceWeights.items())):
+      self.errorModal("Cannot Save New Weights",
+                      "None of your weights have changed!")
+      return
+
+    reweightedFilename = filedialog.asksaveasfilename(
+        title="Save Reweighted Wheel",
+        initialdir=Path(self.preferences.get(PrefFields.LAST_SAVE_FOLDER)) or None,
+        filetypes=[('Azathoth Wheel', '*.yaml')],)
+    if not reweightedFilename:
+      return
+
+    reweightedWheelYaml = upgrader.reweightWheel(
+        self.appData.originalWheelYaml, choiceWeights)  # type: ignore
+
+    writer.writeYamlToFile(reweightedWheelYaml, reweightedFilename)
 
   
   @requireWheel
@@ -518,6 +556,12 @@ class AzathothApp(tk.Tk):
                                     borderwidth=0, highlightthickness=0)
       self.chooser.loadUpgrades(allUpgradeChoices)
       self.chooser.place(x=0, y=0, relwidth=1, relheight=0.90)
+
+      saveWeightsButton = tk.Button(chooserPanel, text="Save",
+                                    command=self.saveWeights,
+                                    image=self.images.get(imageKeys.weight),
+                                    compound=tk.RIGHT,
+                                    width=50)
 
       spinEntry = tk.Spinbox(chooserPanel, from_=0, increment=1, to=INF_LIMIT,
                              # Validation prevents entering non-numbers.
@@ -542,6 +586,7 @@ class AzathothApp(tk.Tk):
 
       # Buttons only need to be registered.  They are placed by .refresh()
       self.buttons.update({
+        keys.saveWeightsButton: saveWeightsButton,
         keys.spinEntry: spinEntry,
         keys.spinButton: spinButton,
         keys.clearButton: clearButton,
