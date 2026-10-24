@@ -1,3 +1,4 @@
+from copy import deepcopy
 from data.upgrades import Progression, Upgrade, Wheel, WeightedChoice
 from file import azathothValidator, yamlReader
 from file.azathothConstants import Defaults, Keys, PROGRESSION_FIELD_ALIASES, PROGRESSION_MACROS, UpgradeType
@@ -44,12 +45,12 @@ def _yamlToProgression(yaml):
                      increment=increment, stopAt=stopAt, limit=spinLimit)
 
 
-def _yamlToUpgrade(yaml, game="", upgradeName=""):
+def _yamlToUpgrade(yaml, game=""):
   '''Produces an initial Upgrade structure directly reflecting the given YAML.
 
   Presumes that values have already been validated.
   '''
-  yamlPath = yaml.get("path")
+  yamlPath = yaml.get(Keys.PATH)
 
   # Singleton yaml paths are permitted, but turn them into a list.
   if yamlPath and not isinstance(yamlPath, list):
@@ -67,7 +68,7 @@ def _yamlToUpgrade(yaml, game="", upgradeName=""):
 
   progression = _yamlToProgression(yaml[Keys.PROGRESSION])
 
-  return Upgrade(upgradeName, type, yamlPath, progression)
+  return Upgrade(type, yamlPath, progression)
 
 
 def _yamlToWheel(yaml, game=""):
@@ -98,7 +99,7 @@ def _yamlToWheel(yaml, game=""):
 
     elif Keys.UPGRADE in choice:
       game = choice.get(Keys.GAME, game)  # UpgradeChoice can set game too.
-      choiceUpgrade = _yamlToUpgrade(choice[Keys.UPGRADE], game, choiceName)
+      choiceUpgrade = _yamlToUpgrade(choice[Keys.UPGRADE], game)
       choiceCost = choice.get(Keys.COST, Defaults.UPGRADE_COST)
       weightedChoice = WeightedChoice(
         choiceName, choiceWeight, cost=choiceCost, upgradeResult=choiceUpgrade)
@@ -108,10 +109,20 @@ def _yamlToWheel(yaml, game=""):
   return wheel
 
 
-def azathothToWheel(azathothYamlFilePath):
+def getValidYaml(azathothYamlFilePath):
   '''Opens a YAML file at the given path, parses it, validates contents, and
-  converts it to a Wheel ready for use with a Spinner.
+  returns it.
   '''
   azathothYaml = yamlReader.readToYaml(azathothYamlFilePath)
   azathothValidator.validateAzathothYaml(azathothYaml)
-  return _yamlToWheel(azathothYaml)
+  return azathothYaml
+
+
+def azathothToWheel(azathothYamlFilePath=None, azathothYaml=None):
+  '''Opens a YAML file at the given path, parses it, validates contents, and
+  converts it to a Wheel ready for use with a Spinner.
+  '''
+  yaml = azathothYaml if azathothYaml else getValidYaml(azathothYamlFilePath)
+  if yaml == None:
+    raise ValueError("Must provide one of YAML or a filepath to one.")
+  return _yamlToWheel(deepcopy(yaml))

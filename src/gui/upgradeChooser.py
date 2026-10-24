@@ -216,7 +216,7 @@ class UpgradeChooser(tk.Frame):
           currentGame = game
 
         # Create representative widgets for each upgrade.
-        upgradeLabel = tk.Label(upgradeLayout, text=upgrade.name, width=24)
+        upgradeLabel = tk.Label(upgradeLayout, text=choice.name, width=24)
 
         upperLimit = spinner.getLimitForUpgrade(upgrade, {})
         upDownCounter = UpDownCounter(upgradeLayout,

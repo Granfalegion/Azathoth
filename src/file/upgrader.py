@@ -1,5 +1,7 @@
 import collections.abc
+from copy import deepcopy
 from data.upgrades import *
+from file.azathothConstants import Keys
 import yaml as pyyaml
 
 # Standard indent of two spaces.
@@ -195,3 +197,44 @@ def toUpgradedYaml(upgradeResults: dict, originalYaml):
     _applyUpgradeToYaml(upgrade, count, yaml)
 
   return yaml
+
+
+def _normalizeChoice(choice: dict|WeightedChoice, currentGame=None):
+  '''Returns canonical tuple representing this Upgrade Choice, or YAML thereof,
+  containing the choice's name, followed by its game-inclusive path.
+  '''
+  if isinstance(choice, WeightedChoice):
+    assert(choice.upgradeResult != None)
+    return (choice.name, choice.upgradeResult.yamlPath)
+  else:
+    game = choice.get(Keys.GAME, currentGame)
+    path = choice[Keys.UPGRADE].get(Keys.PATH, [])
+    if not isinstance(path, list):
+      path = [path]
+    return (choice.get(Keys.NAME),
+            tuple(([game] if game else []) + path))
+
+
+def _reweight(yaml, choiceWeights, currentGame=None):
+  '''Reweights any choices under this YAML to follow the given choiceWeights.
+  '''
+  if currentGame is None:
+    currentGame = yaml.get(Keys.GAME, None)
+  for choiceYaml in yaml.get(Keys.WHEEL, []):
+    _reweight(choiceYaml, choiceWeights, currentGame)
+
+  if Keys.UPGRADE in yaml:
+    normalizedChoice = _normalizeChoice(yaml, currentGame)
+    if normalizedChoice in choiceWeights:
+      yaml[Keys.WEIGHT] = choiceWeights.get(normalizedChoice)
+
+
+def reweightWheel(wheelYaml: dict, choiceWeights):
+  '''Returns a copy of the given wheel YAML with weights changed to match those
+  described by the given Choice-to-Weight map.
+  '''
+  reweightedYaml = deepcopy(wheelYaml)
+  normalizedChoiceWeights = {_normalizeChoice(choice): value
+                             for choice, value in choiceWeights.items()}
+  _reweight(reweightedYaml, normalizedChoiceWeights)
+  return reweightedYaml
