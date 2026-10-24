@@ -1,6 +1,7 @@
 # Data classes describing upgrades that you can make to YAMLs and the machinery
 #   around their selection.
 
+from file.azathothConstants import Keys, PROGRESSION_MACROS
 from enum import Enum
 
 UNLIMITED = -1
@@ -109,7 +110,6 @@ class Upgrade:
   """Describes an upgrade that can be selected.
 
   Attributes:
-    name:         Display name for upgrade.
     type:         Type of upgrade.
     yamlPath:     Path to where in the YAML the upgrade is located, if any.
     progression:  Upgraded value to be added.
@@ -121,25 +121,24 @@ class Upgrade:
     MANUAL = 2      # Manually-enforced change with no YAML change.
 
   def __init__(
-      self, name="", type=Type.UNSPECIFIED, yamlPath=None, progression=None):
+      self, type=Type.UNSPECIFIED, yamlPath=None, progression=None):
 
-    self.name = name
     self.type = type
     self.yamlPath = tuple(yamlPath or [])
     self.progression = progression
 
   def __eq__(self, other):
     return (isinstance(other, Upgrade)
-      and self.name == other.name
       and self.type == other.type
       and self.yamlPath == other.yamlPath
       and self.progression == other.progression)
   
   def __hash__(self):
-    return hash((self.name, self.type, self.yamlPath, self.progression))
+    return hash((self.type, self.yamlPath, self.progression))
 
   def __repr__(self) -> str:
-    return self.name
+    return ''.join(self.yamlPath)
+
 
 
 class WeightedChoice:
@@ -181,6 +180,7 @@ class WeightedChoice:
     return self.name
 
 
+
 class Wheel:
   '''Describes a group of weighted choices that can be "spun" to make random
   selections.
@@ -206,4 +206,3 @@ class Wheel:
 
   def __repr__(self) -> str:
     return self.displayName
-  

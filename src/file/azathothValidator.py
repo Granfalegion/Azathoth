@@ -126,6 +126,8 @@ def _validateUpgradeChoice(yaml, game=""):
   Upgrade, per Azathoth spec.
   '''
   _validateKeysAndValueTypes(yaml, VALID_UPGRADE_CHOICE_KEYS_TO_ALLOWED_TYPES)
+  if Keys.NAME not in yaml:
+    raise ValueError(f"Upgrade choice {yaml} contained no name!")
   if Keys.UPGRADE not in yaml:
     raise ValueError(f"Upgrade choice {yaml} contained no upgrade!")  
   if Keys.WEIGHT in yaml and yaml[Keys.WEIGHT] < 0:
@@ -164,6 +166,43 @@ def _validateWheel(yaml, game=""):
       raise ValueError(f"Wheel choice {yaml} contained no wheel nor upgrade!")
 
 
+def _getNormalizedPath(choice, currentGame):
+  '''Returns a normalized representation of this choice's impact path, or None
+  if the upgrade does not alter a YAML path (e.g. MANUAL-typed upgrade).
+  '''
+  if choice[Keys.UPGRADE].get(Keys.TYPE) == UpgradeType.MANUAL:
+    return None
+
+  game = choice.get(Keys.GAME, currentGame)
+  path = choice[Keys.UPGRADE].get(Keys.PATH, [])
+  if not isinstance(path, list):
+    path = [path]
+  return tuple(([game] if game else []) + path)
+
+
+def _validateUniqueUpgradePaths(yaml, occupiedPaths=None, currentGame=None):
+  '''Validates that no upgrades contained in or under this YAML produce paths
+  already targeted by other upgrades.
+  '''
+
+  if occupiedPaths == None:
+    occupiedPaths = set()
+
+  # Don't sweat clashing games.  Earlier validation enforces it.
+  gameToPassDown = currentGame or yaml.get(Keys.GAME, None)
+
+  for choice in yaml.get(Keys.WHEEL, []):
+    _validateUniqueUpgradePaths(choice, occupiedPaths, gameToPassDown)
+
+  if Keys.UPGRADE in yaml:
+    path = _getNormalizedPath(yaml, gameToPassDown)
+    if path is not None:
+      if path in occupiedPaths:
+        raise ValueError(f"Upgrade {yaml} affects a path already changed by"
+                        " another upgrade!")
+      occupiedPaths.add(path)
+
+
 def validateAzathothYaml(yaml):
   '''Performs full validation of the given Azathoth YAML.
 
@@ -175,3 +214,5 @@ def validateAzathothYaml(yaml):
     raise ValueError("Azathoth Wheel file must begin with a wheel.")
 
   _validateWheel(yaml)
+
+  _validateUniqueUpgradePaths(yaml)
