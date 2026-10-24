@@ -1,7 +1,6 @@
 # Data classes describing upgrades that you can make to YAMLs and the machinery
 #   around their selection.
 
-from file.azathothConstants import Keys, PROGRESSION_MACROS
 from enum import Enum
 
 UNLIMITED = -1
