@@ -45,7 +45,7 @@ def _yamlToProgression(yaml):
                      increment=increment, stopAt=stopAt, limit=spinLimit)
 
 
-def _yamlToUpgrade(yaml, game=""):
+def _yamlToUpgrade(yaml, game="", choiceName=""):
   '''Produces an initial Upgrade structure directly reflecting the given YAML.
 
   Presumes that values have already been validated.
@@ -68,7 +68,7 @@ def _yamlToUpgrade(yaml, game=""):
 
   progression = _yamlToProgression(yaml[Keys.PROGRESSION])
 
-  return Upgrade(type, yamlPath, progression)
+  return Upgrade(choiceName, type, yamlPath, progression)
 
 
 def _yamlToWheel(yaml, game=""):
@@ -99,7 +99,7 @@ def _yamlToWheel(yaml, game=""):
 
     elif Keys.UPGRADE in choice:
       game = choice.get(Keys.GAME, game)  # UpgradeChoice can set game too.
-      choiceUpgrade = _yamlToUpgrade(choice[Keys.UPGRADE], game)
+      choiceUpgrade = _yamlToUpgrade(choice[Keys.UPGRADE], game, choiceName)
       choiceCost = choice.get(Keys.COST, Defaults.UPGRADE_COST)
       weightedChoice = WeightedChoice(
         choiceName, choiceWeight, cost=choiceCost, upgradeResult=choiceUpgrade)
