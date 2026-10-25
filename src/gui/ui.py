@@ -529,10 +529,13 @@ class AzathothApp(tk.Tk):
 
     reweightedFilename = filedialog.asksaveasfilename(
         title="Save Reweighted Wheel",
-        initialdir=Path(self.preferences.get(PrefFields.LAST_SAVE_FOLDER)) or None,
+        initialdir=Path(
+          self.preferences.get(PrefFields.LAST_SAVE_WEIGHTS_FOLDER)) or None,
         filetypes=[('Azathoth Wheel', '*.yaml')],)
     if not reweightedFilename:
       return
+    self.preferences.set(PrefFields.LAST_SAVE_WEIGHTS_FOLDER,
+                         Path(reweightedFilename).parent.as_posix())
 
     reweightedWheelYaml = upgrader.reweightWheel(
         self.appData.originalWheelYaml, choiceWeights)  # type: ignore

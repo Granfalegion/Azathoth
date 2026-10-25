@@ -16,6 +16,7 @@ class Fields:
   LAST_GAME_YAMLS_FOLDER = "last_game_yamls_folder"
   LAST_WHEEL_FOLDER = "last_wheel_folder"
   LAST_SAVE_FOLDER = "last_save_folder"
+  LAST_SAVE_WEIGHTS_FOLDER = "last_save_weights_folder"
   IGNORE_AZATHOTH_SUMMARY = "ignore_azathoth_summary"
   NEXT_SPIN_BEHAVIOR = "next_spin_behavior"
   ENABLE_CUSTOM_WEIGHTS = "enable_custom_weights"
@@ -40,6 +41,7 @@ DEFAULTS = {
   Fields.LAST_GAME_YAMLS_FOLDER: "",
   Fields.LAST_WHEEL_FOLDER: "",
   Fields.LAST_SAVE_FOLDER: "",
+  Fields.LAST_SAVE_WEIGHTS_FOLDER: "",
   Fields.NEXT_SPIN_BEHAVIOR: MultipleChoice.UNSPECIFIED,
   Fields.ENABLE_CUSTOM_WEIGHTS: False,
   Fields.IGNORE_AZATHOTH_SUMMARY: False,
