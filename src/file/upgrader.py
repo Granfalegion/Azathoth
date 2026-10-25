@@ -1,7 +1,7 @@
 import collections.abc
 from copy import deepcopy
 from data.upgrades import *
-from file.azathothConstants import Keys
+from file.azathothConstants import Defaults, Keys
 import yaml as pyyaml
 
 # Standard indent of two spaces.
@@ -226,7 +226,9 @@ def _reweight(yaml, choiceWeights, currentGame=None):
   if Keys.UPGRADE in yaml:
     normalizedChoice = _normalizeChoice(yaml, currentGame)
     if normalizedChoice in choiceWeights:
-      yaml[Keys.WEIGHT] = choiceWeights.get(normalizedChoice)
+      setWeight = choiceWeights.get(normalizedChoice)
+      if setWeight != yaml.get(Keys.WEIGHT, Defaults.WEIGHT):
+        yaml[Keys.WEIGHT] = choiceWeights.get(normalizedChoice)
 
 
 def reweightWheel(wheelYaml: dict, choiceWeights):
