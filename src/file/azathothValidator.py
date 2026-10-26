@@ -29,8 +29,8 @@ VALID_UPGRADE_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
 VALID_PROGRESSION_KEYS_TO_ALLOWED_TYPES: dict[str, list] = {
   Keys.STOP_AT: [int],
   Keys.SPIN_LIMIT: [int],
-  Keys.VALUES: [int|str, list],  # Consider if there are other raw types here.
-  Keys.DISPLAY_VALUES: [int|str, list],
+  Keys.VALUES: [int, str, list],  # Consider if there are other raw types here.
+  Keys.DISPLAY_VALUES: [int, str, list],
   Keys.INCREMENT: [int],
 }
 
@@ -52,11 +52,30 @@ def _validateKeysAndValueTypes(yaml, validKeys):
 
   for key, value in yaml.items():
     if key not in validKeys:
-      raise ValueError(f"YAML contained unexpected key '{key}',"
+      raise ValueError(f"YAML {yaml} contained unexpected key '{key}',"
                        f" only allows {list(validKeys.keys())}")
     if not isinstance(value, tuple(validKeys[key])):
-      raise ValueError(f"YAML contained unexpected value {value},"
+      raise ValueError(f"YAML {yaml} contained unexpected value {value},"
                        f" must be of type {list(validKeys[key])}")
+
+    # A little hacky, but the idea is that any key that can be validly either a
+    # list or a non-list type must necessarily be a list OF those other types
+    # when it's a list.
+    if isinstance(value, list) and len(validKeys[key]) > 1:
+      allowedSubTypes = [subtype for subtype in validKeys[key]
+                         if subtype != list]
+      if not all([isinstance(subvalue, tuple(allowedSubTypes))
+                  for subvalue in value]):
+        errorMsg = (f"YAML {value} is a list that includes unexpected members"
+                    f" not of type {allowedSubTypes}.")
+
+        if (dict not in allowedSubTypes and
+            any(isinstance(member, dict) for member in value)):
+          # Special treatment for common error. list of dicts doesn't _always_
+          # indicate a miswritten path, but it's common enough for a prompt.
+          errorMsg += "\n\nDid you mean to extend your Upgrade path instead?"
+        
+        raise ValueError(errorMsg)
 
 
 def _yamlLength(entry):
