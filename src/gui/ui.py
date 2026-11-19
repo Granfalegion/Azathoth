@@ -225,16 +225,15 @@ class AzathothApp(tk.Tk):
 
     # Stretch or unstretch UI to account for custom weights column.
     # TODO: Codify dynamic stretching instead of hardcoding.
-    if self.preferences.get(PrefFields.ENABLE_CUSTOM_WEIGHTS):
+    if self.preferences.get(PrefFields.ENABLE_CUSTOM_WEIGHTS) and self.chooser:
       self.parent.geometry("660x400")
       self.bgLabel.place(x=-30, y=0)
-      if self.chooser:
-        self.chooserPanel.place(relwidth=360/660)
-        self.buttons[keys.saveWeightsButton].place(x=5, y=372, width=60)
-        self.buttons[keys.spinEntry].place(x=10+60, y=375, width=40)
-        self.buttons[keys.spinButton].place(x=60+60, y=372, width=60)
-        self.buttons[keys.clearButton].place(x=140+60, y=372, width=60)
-        self.buttons[keys.saveButton].place(x=220+60, y=372, width=60)
+      self.chooserPanel.place(relwidth=360/660)
+      self.buttons[keys.saveWeightsButton].place(x=5, y=372, width=60)
+      self.buttons[keys.spinEntry].place(x=10+60, y=375, width=40)
+      self.buttons[keys.spinButton].place(x=60+60, y=372, width=60)
+      self.buttons[keys.clearButton].place(x=140+60, y=372, width=60)
+      self.buttons[keys.saveButton].place(x=220+60, y=372, width=60)
     else:
       self.parent.geometry("600x400")
       self.bgLabel.place(x=0, y=0)

@@ -69,10 +69,10 @@ def _validateKeysAndValueTypes(yaml, validKeys):
         errorMsg = (f"YAML {value} is a list that includes unexpected members"
                     f" not of type {allowedSubTypes}.")
 
-        if (dict not in allowedSubTypes and
+        if (key == Keys.VALUES and
+            dict not in allowedSubTypes and
             any(isinstance(member, dict) for member in value)):
-          # Special treatment for common error. list of dicts doesn't _always_
-          # indicate a miswritten path, but it's common enough for a prompt.
+          # Special treatment for common error.
           errorMsg += "\n\nDid you mean to extend your Upgrade path instead?"
         
         raise ValueError(errorMsg)

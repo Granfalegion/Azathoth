@@ -296,8 +296,10 @@ Items that can be collected indefinitely.
 
 ### Additional Requirements
 
-All upgrades must be located beneath a Wheel that specifies a `game` setting.
-These need not be the most recent Wheel.
+All upgrades must belong to a `game`. This can either be specified by a Wheel,
+describing all Wheels and Upgrades contained by that wheel, or on Upgrade
+Choices themselves. `game` may be specified redundantly, if desired, but they
+must agree with one another; it cannot be used to override a higher setting.
 
 ## Known Issues
 
